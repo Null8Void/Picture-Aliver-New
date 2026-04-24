@@ -1,0 +1,207 @@
+# Picture-Aliver Configuration File
+# Copy this file to your project directory and customize as needed
+
+# =============================================================================
+# PIPELINE SETTINGS
+# =============================================================================
+pipeline:
+  # Enable/disable pipeline steps
+  enable_quality_check: true
+  enable_stabilization: true
+  enable_interpolation: false
+  
+  # Number of retries for quality issues
+  quality_max_retries: 2
+
+# =============================================================================
+# OUTPUT SETTINGS
+# =============================================================================
+output:
+  # Video format: mp4, webm, gif
+  format: "mp4"
+  
+  # Quality preset: low, medium, high, ultra
+  quality: "medium"
+  
+  # Output directory
+  directory: "./output"
+
+# =============================================================================
+# VIDEO SETTINGS
+# =============================================================================
+video:
+  # Duration in seconds (5-120)
+  duration_seconds: 3.0
+  
+  # Frames per second (1-60)
+  fps: 8
+  
+  # Resolution
+  resolution:
+    width: 512
+    height: 512
+    # Auto-adjust based on GPU tier
+    auto_adjust: true
+
+# =============================================================================
+# GENERATION PARAMETERS
+# =============================================================================
+generation:
+  # Number of denoising steps
+  num_inference_steps: 25
+  
+  # CFG guidance scale
+  guidance_scale: 7.5
+  
+  # Seed for reproducibility (null for random)
+  seed: null
+
+# =============================================================================
+# MOTION SETTINGS
+# =============================================================================
+motion:
+  # Motion mode: auto, cinematic, zoom, pan, subtle, furry
+  mode: "auto"
+  
+  # Motion strength (0.0-1.0)
+  strength: 0.8
+  
+  # Natural language motion prompt (optional)
+  # Examples: "gentle tail wag", "wind blowing", "dramatic zoom"
+  prompt: null
+  
+  # Camera motion presets
+  camera:
+    # Camera type: pan, zoom, dolly, orbital, tilt, shake
+    type: "pan"
+    # Motion range multiplier
+    range: 1.0
+    # Path interpolation: linear, ease, arc
+    path: "ease"
+
+# =============================================================================
+# ARTIFACT REDUCTION
+# =============================================================================
+artifact_reduction:
+  # Enable depth conditioning
+  depth_conditioning: true
+  
+  # Enable ControlNet guidance
+  controlnet: true
+  
+  # Enable latent consistency
+  latent_consistency: true
+  
+  # Enable optical flow stabilization
+  optical_flow_stabilization: true
+  
+  # Enable frame interpolation (RIFE/FILM)
+  frame_interpolation: false
+
+# =============================================================================
+# QUALITY CONTROL
+# =============================================================================
+quality:
+  # Enable automatic quality check
+  enabled: true
+  
+  # Detection thresholds
+  thresholds:
+    face_warp: 0.7
+    flicker: 0.15
+    structural: 0.6
+  
+  # Automatic correction strategies
+  auto_correct:
+    strengthen_conditioning: true
+    reduce_motion: true
+    adjust_guidance: true
+
+# =============================================================================
+# GPU SETTINGS
+# =============================================================================
+gpu:
+  # Device: auto, cuda, cpu
+  device: "auto"
+  
+  # VRAM tier override: 2gb, 4gb, 8gb, 12gb, 24gb
+  tier_override: null
+  
+  # Precision: fp32, fp16, bf16
+  precision: "fp16"
+  
+  # Model offloading for low VRAM
+  model_offload: false
+  
+  # Attention slicing
+  attention_slicing: true
+  
+  # xformers memory efficient attention
+  enable_xformers: true
+
+# =============================================================================
+# MODEL PATHS
+# =============================================================================
+models:
+  # Base directory for models
+  base_dir: "./models"
+  
+  # Depth estimation model
+  depth_model: "zoedepth"
+  
+  # Segmentation model
+  segmentation_model: "sam"
+  
+  # Video diffusion model
+  diffusion_model: "sd-v1-5"
+  
+  # ControlNet models
+  controlnet_models:
+    - "depth"
+    - "canny"
+    - "pose"
+
+# =============================================================================
+# CONTENT TYPE PREFERENCES
+# =============================================================================
+content:
+  # Default content type hint: human, furry, animal, landscape, object, scene
+  type_hint: null
+  
+  # Enable furry/animal content support
+  enable_furry_support: true
+  
+  # Enable unrestricted content (NSFW)
+  enable_nsfw: false
+  
+  # Content filter level: none, basic, strict
+  filter_level: "none"
+
+# =============================================================================
+# MOBILE/COMPUTE SERVER SETTINGS
+# =============================================================================
+remote:
+  # Enable remote compute mode
+  enabled: false
+  
+  # Server URL
+  server_url: "http://localhost:8080"
+  
+  # API key for authentication
+  api_key: null
+  
+  # Timeout in seconds
+  timeout: 300
+
+# =============================================================================
+# LOGGING
+# =============================================================================
+logging:
+  # Log level: debug, info, warning, error
+  level: "info"
+  
+  # Log to file
+  log_file: null
+  
+  # Verbose output
+  verbose: true
