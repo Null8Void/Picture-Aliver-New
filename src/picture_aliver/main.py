@@ -19,18 +19,17 @@ import torch
 import numpy as np
 from PIL import Image
 import torch.nn as nn
-from typing import Any
 
-from image_loader import ImageLoader
-from depth_estimator import DepthEstimator, DepthResult
-from segmentation import SegmentationModule, SegmentationResult, ContentType
-from motion_generator import MotionGenerator, MotionField
-from video_generator import VideoGenerator, VideoFrames
-from stabilizer import VideoStabilizer
-from text_to_image import TextToImageGenerator, TextToVideoGenerator
-from quality_control import QualityController, QualityReport
-from gpu_optimization import GPUOptimizer, VRAMTier
-from exporter import VideoExporter, ExportOptions, VideoSpec, QualityPreset, VideoFormat
+from .image_loader import ImageLoader
+from .depth_estimator import DepthEstimator, DepthResult
+from .segmentation import SegmentationModule, SegmentationResult, ContentType
+from .motion_generator import FurryMotionGenerator
+from .video_generator import VideoGenerator, VideoFrames
+from .stabilizer import VideoStabilizer
+from .text_to_image import TextToImageGenerator, TextToVideoGenerator
+from .quality_control import QualityController, QualityReport
+from .gpu_optimization import GPUOptimizer, VRAMTier
+from .exporter import VideoExporter, ExportOptions, VideoSpec, QualityPreset, VideoFormat
 
 
 # =============================================================================

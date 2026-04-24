@@ -14,12 +14,11 @@ Output:
 import os
 import sys
 from pathlib import Path
-from PyInstaller.utils.hooks import collect_data_files, collect_all_data
 
 block_cipher = None
 
-# Project root directory
-project_root = Path(__file__).parent.parent.parent
+# Project root directory - use absolute path
+project_root = Path("E:/Picture-Aliver")
 
 a = Analysis(
     ['desktop/pyqt/main.py'],

@@ -27,8 +27,8 @@ from .physics_motion import (
 from .furry_motions import (
     FurryMotionGenerator,
     FurryMotionType,
-    FurryCharacterMotion,
-    create_furry_motion,
+    FurryRegion,
+    FurryMotionConfig,
 )
 
 __all__ = [

@@ -32,14 +32,14 @@ from ..modules.generation import (
     VideoFrames,
     GenerationConfig,
     MotionGuidance,
-    DepthConditioner, DepthConditionConfig,
+    DepthConditioner, DepthConditioningConfig,
     ControlNetGuidance, ControlNetConfig,
     LatentConsistencyManager, LatentConsistencyConfig,
     OpticalFlowStabilizer, StabilizationConfig,
-    FrameInterpolator, InterpolationConfig,
-    ArtifactReducer, ArtifactReductionConfig,
+    FrameInterpolator, FrameInterpolatorConfig,
+    ArtifactReducer, ArtifactConfig,
     ContentAnalyzer, ContentType, DynamicPipelineAdapter,
-    FurryModelRegistry, FurryModelConfig, get_furry_model
+    FurryStyle, FurPattern, FurryModelInfo, get_furry_models
 )
 
 

@@ -12,6 +12,7 @@ Models optimized for anthropomorphic/feral animal content:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from enum import Enum
 from typing import Dict, List, Optional, Tuple
 
 import torch

@@ -32,11 +32,14 @@ class ConditioningType(Enum):
 
 class MotionInjectionStrategy(Enum):
     """Strategies for injecting motion."""
+    CONTROLNET = "controlnet"
+    MOTION_LORA = "motion_lora"
     ADDITIVE = "additive"
     ATTENTION = "attention"
     WARPING = "warping"
     HYPERNETWORK = "hypernetwork"
     ADAPTER = "adapter"
+    FLOW_INJECTION = "flow_injection"
 
 
 @dataclass
