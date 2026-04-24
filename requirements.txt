@@ -64,6 +64,17 @@ scikit-image>=0.21.0
 
 # =============================================================================
 # Mobile App (install separately in mobile_app/)
-# =============================================================================
 # cd mobile_app && npm install
 # See mobile_app/package.json for React Native dependencies
+
+# =============================================================================
+# Desktop Apps Dependencies
+# =============================================================================
+
+# PyQt5 Desktop App
+PyQt5>=5.15.0
+pyinstaller>=5.13.0
+
+# Electron Desktop App (in desktop/electron/)
+# cd desktop/electron && npm install
+# See desktop/electron/package.json
