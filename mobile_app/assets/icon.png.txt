@@ -1,2 +1,0 @@
-# Placeholder for app icon (1024x1024 PNG)
-# Replace with actual icon before building

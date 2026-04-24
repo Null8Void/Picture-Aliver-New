@@ -1,239 +1,338 @@
-# Picture-Aliver: Image-to-Video AI System
+# Picture-Aliver
 
-Production-ready AI system for converting images to animated videos. Supports both **safe** and **unrestricted** content generation modes.
+**AI Image-to-Video Generation Pipeline** - Convert static images into animated videos using deep learning.
+
+---
 
 ## Features
 
-- **Multi-Mode Support**: Safe, Mature, and Unrestricted (NSFW) generation
-- **Depth Estimation**: ZoeDepth, MiDaS, Marigold
-- **Semantic Segmentation**: SAM, DeepLabV3
-- **Optical Flow**: RAFT, GMFlow, Farneback
-- **Video Generation**: SVD, AnimateDiff, Open-SVD, OpenGIF
-- **Frame Interpolation**: RIFE, AMT
-- **Temporal Consistency**: Gaussian smoothing, flicker reduction
-- **GPU Accelerated**: CUDA/MPS support
+| Feature | Description |
+|---------|-------------|
+| **AI Pipeline** | 9-stage pipeline: Image → Depth → Segmentation → Motion → Video → Stabilization → Export |
+| **Auto-Correction** | Detects flickering, warped faces, structural instability and auto-corrects |
+| **GPU Optimization** | FP16, VRAM monitoring, adaptive scaling for 2GB-24GB GPUs |
+| **Debug System** | Saves intermediate outputs: depth maps, masks, frames, motion fields |
+| **REST API** | FastAPI backend for mobile/web integrations |
+| **Mobile App** | React Native app with image selection and video preview |
+
+---
+
+## System Requirements
+
+| Component | Minimum | Recommended |
+|-----------|---------|-------------|
+| VRAM | 2GB | 8GB+ |
+| RAM | 8GB | 16GB+ |
+| Storage | 10GB | 20GB+ |
+| Python | 3.9+ | 3.10+ |
+
+### GPU Tiers
+
+| VRAM | Resolution | FPS | Quality |
+|------|------------|-----|---------|
+| 2GB | 384x384 | 4 | Minimum |
+| 4GB | 512x512 | 6 | Basic |
+| 8GB | 768x768 | 12 | Standard |
+| 12GB | 1024x1024 | 24 | High |
+| 24GB | 1280x1280 | 30 | Ultra |
+
+---
 
 ## Installation
+
+### 1. Clone Repository
+
+```bash
+git clone https://github.com/Null8Void/Picture-Aliver.git
+cd Picture-Aliver
+```
+
+### 2. Create Virtual Environment
+
+```bash
+# Create venv
+python -m venv venv
+
+# Activate (Windows)
+venv\Scripts\activate
+
+# Activate (Mac/Linux)
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Quick Start
-
-### Python API
-
-```python
-from picture_aliver import PictureAliver
-
-# Safe mode (default)
-app = PictureAliver(mode="safe")
-result = app.convert("photo.jpg", "video.mp4")
-
-# Unrestricted mode
-app = PictureAliver(mode="nsfw")
-result = app.convert("photo.jpg", "video.mp4")
-```
-
-### CLI
+### 4. Verify Installation
 
 ```bash
-# Safe mode
-python -m src.bin.cli -i photo.jpg -o video.mp4
-
-# Unrestricted mode
-python -m src.bin.cli -i photo.jpg -o video.mp4 --mode nsfw
-
-# Show available models
-python -m src.bin.cli --list-models
+python -c "import torch; print(f'PyTorch {torch.__version__}')"
+python -c "from src.picture_aliver.main import Pipeline; print('Pipeline OK')"
 ```
 
-## Content Modes
+---
 
-| Mode | Description | Available Models |
-|------|-------------|-------------------|
-| `safe` | General content only | SVD, ZoeDepth, SAM |
-| `mature` | Some restrictions | ZeroScope, MiDaS, SAM |
-| `nsfw` / `unrestricted` | No restrictions | Open-SVD, OpenGIF, all models |
+## How to Run
 
-## Model Categories
-
-### Image-to-Video Models
-
-**Safe/General:**
-- SVD (Stable Video Diffusion) - Highest quality
-- AnimateDiff SDXL - High resolution
-
-**Mature:**
-- ZeroScope v2 - Fast, good quality
-- I2VGen-XL - Image preservation
-
-**Unrestricted:**
-- Open-SVD - High quality, no filters
-- OpenGIF - Extended sequences
-- AnimateDiff v3 - Motion adapters
-
-### Supporting Models
-
-| Category | Safe | Unrestricted |
-|----------|------|--------------|
-| Depth | ZoeDepth | MiDaS v3.1 |
-| Segmentation | SAM Vit-L | SAM Vit-B, MobileSAM |
-| Interpolation | RIFE v4 | RIFE v4 |
-
-## Configuration
-
-### Python API
-
-```python
-from picture_aliver import PictureAliverBuilder
-
-app = PictureAliverBuilder() \
-    .mode("nsfw") \
-    .vram(12000) \
-    .frames(24) \
-    .resolution(512) \
-    .motion("cinematic") \
-    .i2v_model("Open-SVD") \
-    .build()
-
-result = app.convert("photo.jpg", "video.mp4")
-```
-
-### CLI Options
+### Backend Server (PC)
 
 ```bash
-python -m src.bin.cli \
-    --input photo.jpg \
-    --output video.mp4 \
-    --mode nsfw \
-    --i2v-model "Open-SVD" \
-    --num-frames 24 \
-    --fps 8 \
-    --motion-mode cinematic
+# Start API server on all interfaces
+python -m uvicorn src.picture_aliver.api:app --host 0.0.0.0 --port 8000
+
+# Development mode with auto-reload
+uvicorn src.picture_aliver.api:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## Model Selection
-
-### By Hardware Tier
-
-**High-End (12GB+ VRAM):**
-```python
-app = PictureAliver(mode="nsfw", vram_mb=16000)
-# Uses: Open-SVD, ZoeDepth, SAM Vit-H
+Verify server:
+```bash
+curl http://localhost:8000/health
 ```
 
-**Mid-Range (8GB VRAM):**
-```python
-app = PictureAliver(mode="nsfw", vram_mb=8000)
-# Uses: OpenGIF, MiDaS, MobileSAM
-```
-
-**Low-End (4GB VRAM):**
-```python
-app = PictureAliver(mode="mature", vram_mb=4000)
-# Uses: ZeroScope, MiDaS, MobileSAM
-```
-
-### List Available Models
+### CLI Usage
 
 ```bash
-# All models
-python -m src.bin.cli --list-models
+# Basic usage
+python main.py --image photo.jpg --prompt "gentle wave animation"
 
-# NSFW/Unrestricted models only
-python -m src.bin.cli --list-models --mode nsfw
+# With options
+python main.py --image photo.jpg --prompt "cinematic pan" --duration 5 --fps 12
 
-# Show VRAM requirements
-python -m src.bin.cli --show-vram
+# Use custom config
+python main.py --image photo.jpg --prompt "motion" --config configs/default.yaml
 ```
 
-## Architecture
+### Mobile App
 
-```
-Input Image
-    │
-    ├── Content Rating Check (Safe/Mature/Unrestricted)
-    │
-    ▼
-Scene Understanding
-    ├── Depth Estimation (context-aware model selection)
-    ├── Segmentation (context-aware model selection)
-    └── Scene Classification
-    │
-    ▼
-Motion Generation
-    ├── Camera Trajectory
-    └── Flow Fields
-    │
-    ▼
-Video Synthesis (model selected by rating)
-    ├── Safe: SVD, AnimateDiff-SDXL
-    ├── Mature: ZeroScope, I2VGen
-    └── Unrestricted: Open-SVD, OpenGIF
-    │
-    ▼
-Temporal Stabilization
-    │
-    ▼
-Export
+```bash
+cd mobile_app
+
+# Install dependencies
+npm install
+
+# Configure API URL in lib/services/api.ts (update physical device IP)
+
+# Start development
+npm start
+
+# Run on device
+npx expo run:android  # Android
+npx expo run:ios       # iOS
 ```
 
-## VRAM Requirements
+---
 
-| Model | VRAM | Quality |
-|-------|------|---------|
-| Open-SVD | 12GB | Excellent |
-| OpenGIF | 10GB | Excellent |
-| SVD | 12GB | Excellent |
-| AnimateDiff SDXL | 12GB | High |
-| ZeroScope | 6GB | Good |
-| MobileSAM | 300MB | Medium |
+## Testing
 
-## Motion Styles
+### Run Test Suite
 
-- `cinematic`: Slow dolly/pan
-- `subtle`: Minimal movement
-- `environmental`: Natural elements
-- `orbital`: Circular camera path
-- `zoom-in` / `zoom-out`: Zoom effects
-- `pan-left` / `pan-right`: Horizontal pan
+```bash
+# Run all test cases
+python -m tests.testing_workflow
+
+# Test cases:
+# - portrait_subtle_motion
+# - landscape_pan
+# - object_rotation
+```
+
+### Test Output
+
+```
+======================================================================
+TEST SUMMARY
+======================================================================
+Total: 3 | Passed: 3 | Failed: 0
+
+  [PASS] portrait_subtle_motion (45.2s)
+  [PASS] landscape_pan (52.1s)
+  [PASS] object_rotation (45.8s)
+======================================================================
+```
+
+### Quality Metrics
+
+Each test verifies:
+- **Flickering**: Brightness variance < 15 (lower = better)
+- **Motion**: Optical flow intensity > 0.5
+- **Stability**: SSIM > 0.7 between frames
+
+---
+
+## Project Structure
+
+```
+Picture-Aliver/
+├── main.py                    # CLI entry point
+├── src/
+│   └── picture_aliver/
+│       ├── main.py           # Pipeline orchestration
+│       ├── config.yaml       # Default configuration
+│       ├── api.py            # FastAPI server
+│       ├── gpu_optimization.py
+│       ├── config_loader.py
+│       └── debug_saver.py
+├── mobile_app/               # React Native app
+│   ├── App.tsx
+│   ├── lib/
+│   │   ├── screens/         # HomeScreen, SettingsScreen
+│   │   ├── services/       # API service
+│   │   └── models/         # TypeScript types
+│   └── package.json
+├── tests/
+│   ├── testing_workflow.py  # Test runner
+│   └── README.md
+├── configs/
+│   └── default.yaml         # Pipeline config
+├── models/                   # Downloaded models
+├── outputs/                  # Generated videos
+├── debug/                    # Debug outputs
+├── requirements.txt
+├── setup.py
+└── README.md
+```
+
+---
 
 ## API Reference
 
-### PictureAliver
+### Endpoints
 
-```python
-class PictureAliver:
-    def convert(image, output_path, prompt="", **kwargs) -> PipelineResult
-    def convert_with_motion(image, output_path, motion_style, **kwargs) -> PipelineResult
-    def set_mode(mode) -> PictureAliver
-    def set_model(category, model_name) -> PictureAliver
-    def get_available_models() -> Dict
-    def clear_cache()
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/generate` | Start video generation |
+| GET | `/tasks/{id}` | Get task status |
+| GET | `/tasks` | List all tasks |
+| GET | `/download/{id}` | Download video |
+| GET | `/health` | Server health check |
+
+### Example Request
+
+```bash
+curl -X POST http://localhost:8000/generate \
+  -F "image=@photo.jpg" \
+  -F "prompt=gentle animation" \
+  -F "duration=3" \
+  -F "fps=8"
 ```
 
-### Model Registry
+### Response
 
-```python
-from picture_aliver import MODEL_REGISTRY, ContentRating
-
-# Get models by rating
-nsfw_models = MODEL_REGISTRY.get_by_category(
-    ModelCategory.I2V,
-    rating=ContentRating.NSFW
-)
-
-# Get recommendations
-recommendations = MODEL_REGISTRY.get_model_recommendations(
-    rating=ContentRating.NSFW,
-    vram_mb=12000,
-    high_quality=True
-)
+```json
+{
+  "task_id": "abc12345",
+  "status": "pending",
+  "message": "Generation started"
+}
 ```
+
+---
+
+## Configuration
+
+### Pipeline Config (`src/picture_aliver/config.yaml`)
+
+```yaml
+debug:
+  enabled: false
+  directory: "./debug"
+  save:
+    depth_maps: true
+    segmentation_masks: true
+    raw_frames: true
+    stabilized_frames: true
+    motion_fields: true
+
+video:
+  duration_seconds: 3.0
+  fps: 8
+  resolution:
+    width: 512
+    height: 512
+
+generation:
+  num_inference_steps: 25
+  guidance_scale: 7.5
+
+gpu:
+  device: "auto"
+  precision: "fp16"
+
+motion:
+  mode: "auto"
+  strength: 0.8
+```
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CUDA_VISIBLE_DEVICES` | `0` | GPU device ID |
+| `PYTORCH_CUDA_ALLOC_CONF` | `max_split_size_mb:512` | Memory settings |
+
+---
+
+## Troubleshooting
+
+| Issue | Solution |
+|-------|----------|
+| "Module not found" | Run `pip install -r requirements.txt` |
+| GPU not detected | Check CUDA: `python -c "import torch; print(torch.cuda.is_available())"` |
+| Out of memory | Reduce resolution or use `--device cpu` |
+| Connection refused | Ensure server running, check firewall |
+| App won't connect | Update API URL in mobile app settings |
+
+### Common Fixes
+
+```bash
+# Clear GPU cache
+python -c "import torch; torch.cuda.empty_cache()"
+
+# Reinstall dependencies
+pip install --force-reinstall -r requirements.txt
+
+# Check GPU info
+python -c "import torch; print(torch.cuda.get_device_properties(0))"
+```
+
+---
+
+## Development
+
+### Adding New Modules
+
+1. Create module in `src/picture_aliver/`
+2. Add imports to `main.py`
+3. Add pipeline step in `Pipeline` class
+4. Update `DebugConfig` if debug output needed
+5. Add tests in `tests/`
+
+### Code Style
+
+```bash
+# Format code
+black src/
+
+# Type check
+mypy src/
+```
+
+---
 
 ## License
 
 Apache 2.0
 
-**Note**: Using unrestricted/NSFW models may have legal implications depending on your jurisdiction. Ensure compliance with local laws and platform terms of service.
+---
+
+## Credits
+
+Built with:
+- PyTorch / TorchVision
+- Diffusers (HuggingFace)
+- OpenCV
+- FastAPI
+- React Native / Expo

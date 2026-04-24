@@ -1,4 +1,5 @@
-_pycache_/
+# Python
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
@@ -9,18 +10,35 @@ _pycache_/
 dist/
 build/
 *.log
+
+# IDE
 .vscode/
 .idea/
-*.md5
-*.sha256
-checkpoints/
+
+# Git
+.DS_Store
+
+# ML Models (downloaded separately)
 *.pt
 *.pth
 *.ckpt
 *.safetensors
 wandb/
-outputs/*
-!outputs/.gitkeep
-models/*
-!models/.gitkeep
-.DS_Store
+
+# Model weights
+checkpoints/
+models/
+
+# Generated outputs (keep directories)
+outputs/
+debug/
+uploads/
+
+# Mobile app
+mobile_app/node_modules/
+mobile_app/.expo/
+
+# Environment
+.env
+venv/
+.env.local

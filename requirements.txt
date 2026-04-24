@@ -1,38 +1,55 @@
+# Picture-Aliver Dependencies
+# Core ML/AI dependencies
+
+# PyTorch (required)
 torch>=2.0.0
 torchvision>=0.15.0
+
+# Core utilities
 numpy>=1.24.0
 pillow>=10.0.0
-opencv-python>=4.8.0
 scipy>=1.11.0
+
+# Deep learning utilities
 einops>=0.7.0
+kornia>=0.7.0
+timm>=0.9.0
+
+# Configuration
 omegaconf>=2.3.0
-pytorch-lightning>=2.0.0
-transformers>=4.30.0
+pyyaml>=6.0
+
+# Model acceleration
 accelerate>=0.20.0
+pytorch-lightning>=2.0.0
+
+# Transformers & Diffusers
+transformers>=4.30.0
 diffusers>=0.25.0
 safetensors>=0.3.0
-timm>=0.9.0
-kornia>=0.7.0
-sentencepiece>=0.1.99
-protobuf>=3.20.0
-accelerate>=0.20.0
 huggingface-hub>=0.20.0
 
-# Optional dependencies for specific models
-# Depth Estimation
-zoedepth>=0.1.0  # ZoeDepth (optional)
-
-# Segmentation
-segment-anything>=1.0.0
-
-# Motion estimation (optional)
-# rifenet @ git+https://github.com/hzwer/RIFE.git  # RIFE interpolation
-
-# Experimental / Unrestricted models
-# These may require additional setup or custom installations
+# NLP (for some models)
+sentencepiece>=0.1.99
+protobuf>=3.20.0
 
 # =============================================================================
-# API SERVER
+# Optional: Depth Estimation
+# =============================================================================
+# zoedepth>=0.1.0  # Uncomment if using ZoeDepth
+
+# =============================================================================
+# Optional: Segmentation
+# =============================================================================
+# segment-anything>=1.0.0  # Uncomment if using SAM
+
+# =============================================================================
+# Optional: Motion Estimation (RIFE)
+# =============================================================================
+# pip install RIFE if needed for frame interpolation
+
+# =============================================================================
+# API Server
 # =============================================================================
 fastapi>=0.100.0
 uvicorn[standard]>=0.23.0
@@ -40,7 +57,13 @@ python-multipart>=0.0.6
 pydantic>=2.0.0
 
 # =============================================================================
-# TESTING
+# Testing
 # =============================================================================
 opencv-python>=4.8.0
 scikit-image>=0.21.0
+
+# =============================================================================
+# Mobile App (install separately in mobile_app/)
+# =============================================================================
+# cd mobile_app && npm install
+# See mobile_app/package.json for React Native dependencies
