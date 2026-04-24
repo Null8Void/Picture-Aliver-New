@@ -1,0 +1,2 @@
+# Placeholder for favicon (48x48 PNG)
+# Replace with actual icon before building

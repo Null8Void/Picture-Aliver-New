@@ -1,0 +1,2 @@
+# Placeholder for splash screen (1284x2778 PNG)
+# Replace with actual image before building
