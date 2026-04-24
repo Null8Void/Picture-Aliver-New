@@ -379,6 +379,249 @@ class ModelRegistry:
             vram_mb=1000,
             resolution=(256, 256),
         ))
+        
+        # =============================================
+        # NSFW/UNRESTRICTED MOTION MODELS
+        # =============================================
+        
+        self.register(ModelInfo(
+            name="AnimateDiff-Mature-Adapter",
+            repo_id="guoyww/animatediff-motion-adapter",
+            model_path="motion-adapter-mature",
+            category=ModelCategory.MOTION,
+            rating=ContentRating.MATURE,
+            vram_mb=1500,
+        ))
+        
+        self.register(ModelInfo(
+            name="Open-Motion-Director",
+            repo_id="modelscope/motion-director",
+            model_path="motion-director-open",
+            category=ModelCategory.MOTION,
+            rating=ContentRating.NSFW,
+            vram_mb=4000,
+        ))
+        
+        self.register(ModelInfo(
+            name="Physics-Based-Cloth",
+            repo_id="internal/cloth-physics",
+            model_path="cloth-physics",
+            category=ModelCategory.MOTION,
+            rating=ContentRating.NSFW,
+            vram_mb=500,
+            is_torchscript=True,
+        ))
+        
+        self.register(ModelInfo(
+            name="Hair-Dynamics-Unrestricted",
+            repo_id="internal/hair-dynamics",
+            model_path="hair-dynamics",
+            category=ModelCategory.MOTION,
+            rating=ContentRating.NSFW,
+            vram_mb=800,
+            is_torchscript=True,
+        ))
+        
+        # =============================================
+        # NSFW I2V MODELS (Fast motion optimization)
+        # =============================================
+        
+        self.register(ModelInfo(
+            name="Open-SVD-Fast",
+            repo_id="camenduru/open-svd",
+            model_path="svd-fast",
+            category=ModelCategory.I2V,
+            rating=ContentRating.NSFW,
+            vram_mb=10000,
+            resolution=(512, 768),
+            max_frames=25,
+            variants={
+                "fast": "camenduru/open-svd",
+                "quality": "camenduru/open-svd-xt",
+            }
+        ))
+        
+        self.register(ModelInfo(
+            name="ZeroScope-Unrestricted",
+            repo_id="cerspense/zeroscope_v2_576w_dw",
+            model_path="zeroscope-open",
+            category=ModelCategory.I2V,
+            rating=ContentRating.NSFW,
+            vram_mb=6000,
+            resolution=(320, 576),
+            max_frames=24,
+        ))
+        
+        self.register(ModelInfo(
+            name="MotionBoost-I2V",
+            repo_id="modelscope/motionboost",
+            model_path="motionboost",
+            category=ModelCategory.I2V,
+            rating=ContentRating.NSFW,
+            vram_mb=12000,
+            resolution=(512, 512),
+            max_frames=32,
+        ))
+        
+        # =============================================
+        # FURRY-SPECIFIC MODELS
+        # =============================================
+        
+        self.register(ModelInfo(
+            name="Yiffymix",
+            repo_id="stablediffusion/yiffymix",
+            model_path="yiffymix",
+            category=ModelCategory.I2V,
+            rating=ContentRating.NSFW,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            max_frames=24,
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
+        
+        self.register(ModelInfo(
+            name="Yiffymix-V2",
+            repo_id="stablediffusion/yiffymix-v2",
+            model_path="yiffymix-v2",
+            category=ModelCategory.I2V,
+            rating=ContentRating.NSFW,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            max_frames=25,
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
+        
+        self.register(ModelInfo(
+            name="Fluffyrock",
+            repo_id="stablediffusion/fluffyrock",
+            model_path="fluffyrock",
+            category=ModelCategory.I2V,
+            rating=ContentRating.NSFW,
+            vram_mb=4000,
+            resolution=(512, 768),
+            max_frames=16,
+            base_model="runwayml/stable-diffusion-v1-5",
+        ))
+        
+        self.register(ModelInfo(
+            name="Fluffyrock-Unbound",
+            repo_id="stablediffusion/fluffyrock-unbound",
+            model_path="fluffyrock-unbound",
+            category=ModelCategory.I2V,
+            rating=ContentRating.NSFW,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            max_frames=24,
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
+        
+        self.register(ModelInfo(
+            name="Dreamshaper",
+            repo_id="lykon/dreamshaper",
+            model_path="dreamshaper",
+            category=ModelCategory.I2V,
+            rating=ContentRating.MATURE,
+            vram_mb=4000,
+            resolution=(512, 768),
+            max_frames=16,
+            base_model="runwayml/stable-diffusion-v1-5",
+        ))
+        
+        self.register(ModelInfo(
+            name="Dreamshaper-XL",
+            repo_id="lykon/dreamshaper-xl",
+            model_path="dreamshaper-xl",
+            category=ModelCategory.I2V,
+            rating=ContentRating.MATURE,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            max_frames=24,
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
+        
+        self.register(ModelInfo(
+            name="Compass-Mix",
+            repo_id="stablediffusion/compass-mix",
+            model_path="compass-mix",
+            category=ModelCategory.I2V,
+            rating=ContentRating.MATURE,
+            vram_mb=4000,
+            resolution=(512, 512),
+            max_frames=16,
+            base_model="runwayml/stable-diffusion-v1-5",
+        ))
+        
+        self.register(ModelInfo(
+            name="Compass-Mix-XL",
+            repo_id="stablediffusion/compass-mix-xl",
+            model_path="compass-mix-xl",
+            category=ModelCategory.I2V,
+            rating=ContentRating.MATURE,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            max_frames=24,
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
+        
+        self.register(ModelInfo(
+            name="PawPunk",
+            repo_id="furry/pawpunk",
+            model_path="pawpunk",
+            category=ModelCategory.I2V,
+            rating=ContentRating.NSFW,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            max_frames=24,
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
+        
+        self.register(ModelInfo(
+            name="FurryForge",
+            repo_id="community/furryforge",
+            model_path="furryforge",
+            category=ModelCategory.I2V,
+            rating=ContentRating.NSFW,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            max_frames=24,
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
+        
+        self.register(ModelInfo(
+            name="FeralCraft",
+            repo_id="furry/feralcraft",
+            model_path="feralcraft",
+            category=ModelCategory.I2V,
+            rating=ContentRating.MATURE,
+            vram_mb=4000,
+            resolution=(512, 768),
+            max_frames=16,
+            base_model="runwayml/stable-diffusion-v1-5",
+        ))
+        
+        self.register(ModelInfo(
+            name="Kemonomimi-Mix",
+            repo_id="furry/kemonomimi",
+            model_path="kemonomimi",
+            category=ModelCategory.I2V,
+            rating=ContentRating.MATURE,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            max_frames=24,
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
+        
+        self.register(ModelInfo(
+            name="CreatureCraft",
+            repo_id="furry/creaturecraft",
+            model_path="creaturecraft",
+            category=ModelCategory.I2V,
+            rating=ContentRating.NSFW,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            max_frames=24,
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
     
     def register(self, model: ModelInfo):
         """Register a model in the registry."""

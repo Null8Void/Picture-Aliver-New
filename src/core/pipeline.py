@@ -6,7 +6,7 @@ import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Any
 
 import numpy as np
 import torch
@@ -17,13 +17,29 @@ from ..core.device import DeviceManager, get_torch_device
 
 from ..modules.depth import DepthEstimator, DepthMap
 from ..modules.segmentation import Segmentor, SegmentationMask
-from ..modules.motion import FlowEstimator, FlowField, MotionMagnitude
+from ..modules.motion import (
+    FlowEstimator, FlowField, MotionMagnitude,
+    CameraMotionGenerator, CameraTrajectory,
+    ObjectMotionGenerator, ObjectMotion,
+    EnvironmentalMotionGenerator, EnvironmentalEffect,
+    DepthParallaxGenerator, ParallaxConfig,
+    PhysicsMotionGenerator, PhysicsConfig,
+    FurryMotionGenerator, FurryMotionType
+)
 from ..modules.generation import (
     VideoGenerator,
     TemporalConsistencyManager,
     VideoFrames,
     GenerationConfig,
-    MotionGuidance
+    MotionGuidance,
+    DepthConditioner, DepthConditionConfig,
+    ControlNetGuidance, ControlNetConfig,
+    LatentConsistencyManager, LatentConsistencyConfig,
+    OpticalFlowStabilizer, StabilizationConfig,
+    FrameInterpolator, InterpolationConfig,
+    ArtifactReducer, ArtifactReductionConfig,
+    ContentAnalyzer, ContentType, DynamicPipelineAdapter,
+    FurryModelRegistry, FurryModelConfig, get_furry_model
 )
 
 
@@ -40,6 +56,10 @@ class PipelineConfig:
         motion_mode: Motion mode (auto, camera, flow, keypoints)
         output_format: Output video format
         verbose: Verbose logging
+        enable_artifact_reduction: Enable artifact reduction
+        enable_furry_support: Enable furry content support
+        enable_nsfw: Enable unrestricted content generation
+        content_filter: Content filtering level (none, basic, strict)
     """
     enable_depth: bool = True
     enable_segmentation: bool = True
@@ -49,11 +69,18 @@ class PipelineConfig:
     motion_mode: str = "auto"
     output_format: str = "mp4"
     verbose: bool = True
+    enable_artifact_reduction: bool = True
+    enable_furry_support: bool = True
+    enable_nsfw: bool = False
+    content_filter: str = "none"
     
     def __post_init__(self):
         valid_modes = ["auto", "camera", "flow", "keyframes", "zoom", "pan"]
         if self.motion_mode not in valid_modes:
             self.motion_mode = "auto"
+        valid_filters = ["none", "basic", "strict"]
+        if self.content_filter not in valid_filters:
+            self.content_filter = "none"
 
 
 @dataclass
@@ -67,6 +94,8 @@ class PipelineResult:
         flow_field: Estimated flow field
         metadata: Additional metadata
         processing_time: Total processing time
+        content_analysis: Content analysis result
+        motion_generators: Active motion generators
     """
     video_frames: VideoFrames
     depth_map: Optional[DepthMap] = None
@@ -74,6 +103,8 @@ class PipelineResult:
     flow_field: Optional[FlowField] = None
     metadata: Dict = field(default_factory=dict)
     processing_time: float = 0.0
+    content_analysis: Optional[Any] = None
+    motion_generators: Dict[str, Any] = field(default_factory=dict)
     
     @property
     def num_frames(self) -> int:
@@ -98,6 +129,9 @@ class Image2VideoPipeline:
     4. Ensures temporal consistency throughout
     5. Applies post-processing and effects
     6. Outputs a coherent video
+    7. Supports dynamic content adaptation (human, furry, landscape, etc.)
+    8. Reduces artifacts through architectural solutions
+    9. Supports unrestricted content generation for mature content
     
     Args:
         config: Pipeline configuration
@@ -119,8 +153,27 @@ class Image2VideoPipeline:
         self.video_generator: Optional[VideoGenerator] = None
         self.temporal_manager: Optional[TemporalConsistencyManager] = None
         
+        self.camera_motion: Optional[CameraMotionGenerator] = None
+        self.object_motion: Optional[ObjectMotionGenerator] = None
+        self.env_motion: Optional[EnvironmentalMotionGenerator] = None
+        self.parallax: Optional[DepthParallaxGenerator] = None
+        self.physics_motion: Optional[PhysicsMotionGenerator] = None
+        self.furry_motion: Optional[FurryMotionGenerator] = None
+        
+        self.depth_conditioner: Optional[DepthConditioner] = None
+        self.controlnet_guidance: Optional[ControlNetGuidance] = None
+        self.latent_consistency: Optional[LatentConsistencyManager] = None
+        self.flow_stabilizer: Optional[OpticalFlowStabilizer] = None
+        self.frame_interpolator: Optional[FrameInterpolator] = None
+        self.artifact_reducer: Optional[ArtifactReducer] = None
+        
+        self.content_analyzer: Optional[ContentAnalyzer] = None
+        self.pipeline_adapter: Optional[DynamicPipelineAdapter] = None
+        self.furry_models: Optional[FurryModelRegistry] = None
+        
         self._initialized = False
         self._log_history: List[str] = []
+        self._content_type: Optional[ContentType] = None
     
     def initialize(
         self,
@@ -157,6 +210,25 @@ class Image2VideoPipeline:
             self._log("Initializing motion estimator...")
             self.flow_estimator = FlowEstimator(device=self.device)
             self.flow_estimator.initialize()
+            
+            self._log("Initializing camera motion generator...")
+            self.camera_motion = CameraMotionGenerator(device=self.device)
+            
+            self._log("Initializing object motion generator...")
+            self.object_motion = ObjectMotionGenerator(device=self.device)
+            
+            self._log("Initializing environmental motion generator...")
+            self.env_motion = EnvironmentalMotionGenerator(device=self.device)
+            
+            self._log("Initializing depth parallax generator...")
+            self.parallax = DepthParallaxGenerator(device=self.device)
+            
+            self._log("Initializing physics motion generator...")
+            self.physics_motion = PhysicsMotionGenerator(device=self.device)
+            
+            if self.config.enable_furry_support:
+                self._log("Initializing furry motion generator...")
+                self.furry_motion = FurryMotionGenerator(device=self.device)
         
         if init_generation:
             self._log("Initializing video generator...")
@@ -174,12 +246,49 @@ class Image2VideoPipeline:
                 self.video_generator.set_depth_estimator(self.depth_estimator)
             if self.segmentor:
                 self.video_generator.set_segmentor(self.segmentor)
+            
+            if self.config.enable_artifact_reduction:
+                self._log("Initializing artifact reduction system...")
+                self.depth_conditioner = DepthConditioner(
+                    device=self.device,
+                    model_type="zoedepth"
+                )
+                self.controlnet_guidance = ControlNetGuidance(device=self.device)
+                self.latent_consistency = LatentConsistencyManager(
+                    num_frames=24,
+                    device=self.device
+                )
+                self.flow_stabilizer = OpticalFlowStabilizer(device=self.device)
+                self.frame_interpolator = FrameInterpolator(
+                    device=self.device,
+                    model_type="rife"
+                )
+                self.artifact_reducer = ArtifactReducer(
+                    device=self.device,
+                    enable_depth_conditioning=True,
+                    enable_controlnet=True,
+                    enable_latent_consistency=True,
+                    enable_flow_stabilization=True,
+                    enable_frame_interpolation=True
+                )
         
         if self.config.enable_consistency:
             self.temporal_manager = TemporalConsistencyManager(
                 num_frames=24,
                 device=self.device
             )
+        
+        if self.config.enable_furry_support:
+            self._log("Initializing content analyzer...")
+            self.content_analyzer = ContentAnalyzer(
+                device=self.device,
+                nsfw_enabled=self.config.enable_nsfw
+            )
+            self.pipeline_adapter = DynamicPipelineAdapter(
+                device=self.device,
+                enable_nsfw=self.config.enable_nsfw
+            )
+            self.furry_models = FurryModelRegistry()
         
         self._initialized = True
         self._log("Pipeline initialization complete.")
@@ -196,7 +305,9 @@ class Image2VideoPipeline:
         motion_strength: float = 0.8,
         output_path: Optional[Union[str, Path]] = None,
         seed: Optional[int] = None,
-        return_intermediate: bool = False
+        return_intermediate: bool = False,
+        motion_preset: Optional[str] = None,
+        content_type_hint: Optional[str] = None
     ) -> PipelineResult:
         """Process an image to generate a video.
         
@@ -212,6 +323,8 @@ class Image2VideoPipeline:
             output_path: Path to save output video
             seed: Random seed for reproducibility
             return_intermediate: Return intermediate results
+            motion_preset: Motion preset (cinematic, zoom, pan, subtle, furry_tail, etc.)
+            content_type_hint: Hint for content type (human, furry, landscape, etc.)
             
         Returns:
             PipelineResult with generated video and metadata
@@ -229,6 +342,22 @@ class Image2VideoPipeline:
         segmentation = None
         flow_field = None
         motion_guidance = None
+        content_analysis = None
+        motion_generators = {}
+        
+        if self.content_analyzer is not None:
+            self._log("Analyzing content...")
+            content_analysis = self.content_analyzer.analyze(image)
+            self._content_type = content_analysis.content_type
+            self._log(f"Detected content type: {content_analysis.content_type.value}")
+            
+            if content_type_hint:
+                try:
+                    hint_type = ContentType(content_type_hint.lower())
+                    content_analysis.content_type = hint_type
+                    self._content_type = hint_type
+                except ValueError:
+                    pass
         
         if self.config.enable_depth and self.depth_estimator is not None:
             self._log("Estimating depth...")
@@ -242,14 +371,24 @@ class Image2VideoPipeline:
                 points_per_side=32
             )
         
-        if self.config.enable_motion and self.flow_estimator is not None:
-            self._log("Estimating motion...")
-            if self.config.motion_mode == "camera":
-                flow_field = self._generate_camera_flow(image, num_frames)
-            elif self.config.motion_mode == "flow":
-                flow_field = self._estimate_flow(image)
-            else:
-                flow_field = self._generate_default_flow(image, num_frames)
+        if self.config.enable_motion and self.camera_motion is not None:
+            self._log("Generating motion...")
+            flow_field = self._generate_motion(
+                image, num_frames, motion_preset, content_analysis, depth_map
+            )
+            
+            if self.camera_motion:
+                motion_generators["camera"] = self.camera_motion
+            if self.object_motion:
+                motion_generators["object"] = self.object_motion
+            if self.env_motion:
+                motion_generators["environment"] = self.env_motion
+            if self.parallax:
+                motion_generators["parallax"] = self.parallax
+            if self.physics_motion:
+                motion_generators["physics"] = self.physics_motion
+            if self.furry_motion and self._content_type in [ContentType.FURRY, ContentType.ANIMAL]:
+                motion_generators["furry"] = self.furry_motion
         
         if self.depth_estimator is not None:
             motion_guidance = MotionGuidance(
@@ -259,11 +398,21 @@ class Image2VideoPipeline:
             )
         
         self._log(f"Generating {num_frames} frames...")
+        
+        selected_model = None
+        if self.furry_models and self._content_type in [ContentType.FURRY, ContentType.ANIMAL]:
+            furry_config = self.furry_models.get_model_config(
+                self._content_type.value,
+                nsfw=self.config.enable_nsfw
+            )
+            selected_model = furry_config.get("model_name", "dreamshaper")
+            self._log(f"Using furry model: {selected_model}")
+        
         gen_config = GenerationConfig(
             num_frames=num_frames,
             fps=fps,
-            prompt=prompt or self._generate_prompt(image),
-            negative_prompt=negative_prompt or "blurry, low quality, artifacts, static",
+            prompt=prompt or self._generate_prompt(image, content_analysis),
+            negative_prompt=negative_prompt or self._get_default_negative_prompt(content_analysis),
             guidance_scale=guidance_scale,
             num_inference_steps=num_inference_steps,
             motion_strength=motion_strength
@@ -280,6 +429,29 @@ class Image2VideoPipeline:
             )
         else:
             video_frames = self._generate_simple_video(image, num_frames)
+        
+        if self.artifact_reducer is not None and self.config.enable_artifact_reduction:
+            self._log("Applying artifact reduction...")
+            video_tensor = video_frames.to_video()
+            
+            if depth_map is not None and self.depth_conditioner is not None:
+                if isinstance(depth_map, DepthMap):
+                    depth = depth_map.depth
+                else:
+                    depth = depth_map
+                video_tensor = self.artifact_reducer.reduce(
+                    video_tensor,
+                    depth=depth,
+                    segmentation=segmentation
+                )
+            else:
+                video_tensor = self.artifact_reducer.reduce(
+                    video_tensor
+                )
+            
+            video_frames = VideoFrames()
+            for frame in video_tensor:
+                video_frames.append(frame)
         
         if self.temporal_manager is not None:
             self._log("Applying temporal consistency...")
@@ -315,6 +487,8 @@ class Image2VideoPipeline:
             "duration": num_frames / fps,
             "processing_time": processing_time,
             "motion_mode": self.config.motion_mode,
+            "content_type": self._content_type.value if self._content_type else "unknown",
+            "selected_model": selected_model,
         }
         
         result = PipelineResult(
@@ -323,7 +497,9 @@ class Image2VideoPipeline:
             segmentation=segmentation,
             flow_field=flow_field,
             metadata=metadata,
-            processing_time=processing_time
+            processing_time=processing_time,
+            content_analysis=content_analysis,
+            motion_generators=motion_generators
         )
         
         return result
@@ -361,9 +537,143 @@ class Image2VideoPipeline:
         
         return tensor.to(self.device)
     
-    def _generate_prompt(self, image: torch.Tensor) -> str:
+    def _generate_prompt(
+        self,
+        image: torch.Tensor,
+        content_analysis: Optional[Any] = None
+    ) -> str:
         """Generate a simple prompt based on image content."""
+        if content_analysis and content_analysis.content_type == ContentType.FURRY:
+            return "animated furry character, smooth motion, high quality, fluid animation"
+        elif content_analysis and content_analysis.content_type == ContentType.ANIMAL:
+            return "animated animal, natural motion, high quality"
+        elif content_analysis and content_analysis.content_type == ContentType.LANDSCAPE:
+            return "cinematic landscape, natural motion, wind movement, high quality"
         return "natural motion, smooth animation, high quality"
+    
+    def _get_default_negative_prompt(
+        self,
+        content_analysis: Optional[Any] = None
+    ) -> str:
+        """Get default negative prompt based on content type."""
+        base_negative = "blurry, low quality, artifacts, static, jittery motion"
+        if content_analysis and content_analysis.content_type == ContentType.FURRY:
+            return f"{base_negative}, distorted face, broken anatomy, melting fur"
+        return base_negative
+    
+    def _generate_motion(
+        self,
+        image: torch.Tensor,
+        num_frames: int,
+        motion_preset: Optional[str],
+        content_analysis: Optional[Any],
+        depth_map: Optional[Any] = None
+    ) -> FlowField:
+        """Generate motion based on preset and content type."""
+        h, w = image.shape[-2:]
+        
+        if motion_preset == "cinematic" and self.camera_motion:
+            trajectory = CameraTrajectory(
+                camera_type="orbital",
+                start_angle=0.0,
+                end_angle=360.0,
+                radius_start=1.0,
+                radius_end=0.95
+            )
+            flows = self.camera_motion.generate_trajectory(image, trajectory, num_frames)
+            return FlowField(flow=flows[-1])
+        
+        elif motion_preset == "zoom" and self.camera_motion:
+            trajectory = CameraTrajectory(
+                camera_type="dolly",
+                zoom_range=(1.0, 1.3),
+                radius_start=1.0,
+                radius_end=0.7
+            )
+            flows = self.camera_motion.generate_trajectory(image, trajectory, num_frames)
+            return FlowField(flow=flows[-1])
+        
+        elif motion_preset == "pan" and self.camera_motion:
+            trajectory = CameraTrajectory(
+                camera_type="pan",
+                start_angle=0.0,
+                end_angle=180.0,
+                radius_start=1.0,
+                radius_end=1.0
+            )
+            flows = self.camera_motion.generate_trajectory(image, trajectory, num_frames)
+            return FlowField(flow=flows[-1])
+        
+        elif motion_preset == "subtle":
+            x_coords, y_coords = np.meshgrid(
+                np.arange(w, dtype=np.float32),
+                np.arange(h, dtype=np.float32),
+                indexing='xy'
+            )
+            flow = np.zeros((h, w, 2), dtype=np.float32)
+            wave_strength = 1.0
+            flow[..., 0] = wave_strength * np.sin(y_coords / h * 4 * np.pi)
+            flow[..., 1] = wave_strength * np.cos(x_coords / w * 4 * np.pi)
+            return FlowField(flow=flow)
+        
+        elif motion_preset == "furry_tail" and self.furry_motion:
+            flows = self.furry_motion.generate_tail_motion(
+                image,
+                num_frames=num_frames,
+                intensity=0.8
+            )
+            return FlowField(flow=flows[-1])
+        
+        elif motion_preset == "furry_ears" and self.furry_motion:
+            flows = self.furry_motion.generate_ear_motion(
+                image,
+                num_frames=num_frames,
+                intensity=0.7
+            )
+            return FlowField(flow=flows[-1])
+        
+        elif content_analysis and content_analysis.content_type in [ContentType.FURRY, ContentType.ANIMAL]:
+            if self.furry_motion:
+                flows = self.furry_motion.generate(
+                    image,
+                    num_frames=num_frames,
+                    motion_types=None,
+                    intensity=0.7
+                )
+                return FlowField(flow=flows[-1])
+        
+        elif content_analysis and content_analysis.content_type == ContentType.LANDSCAPE:
+            if self.env_motion:
+                flows = self.env_motion.generate(
+                    image,
+                    num_frames=num_frames,
+                    effects=None,
+                    strength=0.5
+                )
+                return FlowField(flow=flows[-1])
+        
+        if self.parallax and depth_map is not None:
+            if isinstance(depth_map, DepthMap):
+                depth = depth_map.depth
+            else:
+                depth = depth_map
+            flows = self.parallax.generate(
+                image,
+                depth,
+                num_frames=num_frames
+            )
+            return FlowField(flow=flows[-1])
+        
+        x_coords, y_coords = np.meshgrid(
+            np.arange(w, dtype=np.float32),
+            np.arange(h, dtype=np.float32),
+            indexing='xy'
+        )
+        flow = np.zeros((h, w, 2), dtype=np.float32)
+        wave_strength = 2.0
+        flow[..., 0] = wave_strength * np.sin(y_coords / h * 4 * np.pi)
+        flow[..., 1] = wave_strength * np.cos(x_coords / w * 4 * np.pi)
+        return FlowField(flow=flow)
     
     def _estimate_flow(
         self,
@@ -623,8 +933,10 @@ class Image2VideoPipeline:
             f"depth={self.depth_estimator is not None}, "
             f"segmentation={self.segmentor is not None}, "
             f"motion={self.flow_estimator is not None}, "
-            f"generation={self.video_generator is not None}"
-            f")"
+            f"generation={self.video_generator is not None}, "
+            f"furry={self.furry_motion is not None}, "
+            f"artifact_reducer={self.artifact_reducer is not None}, "
+            f"content_type={self._content_type})"
         )
 
 
@@ -633,7 +945,11 @@ def create_pipeline(
     enable_depth: bool = True,
     enable_segmentation: bool = True,
     enable_motion: bool = True,
-    enable_consistency: bool = True
+    enable_consistency: bool = True,
+    enable_artifact_reduction: bool = True,
+    enable_furry_support: bool = True,
+    enable_nsfw: bool = False,
+    content_filter: str = "none"
 ) -> Image2VideoPipeline:
     """Factory function to create a configured pipeline.
     
@@ -643,6 +959,10 @@ def create_pipeline(
         enable_segmentation: Enable segmentation
         enable_motion: Enable motion estimation
         enable_consistency: Enable temporal consistency
+        enable_artifact_reduction: Enable artifact reduction
+        enable_furry_support: Enable furry content support
+        enable_nsfw: Enable unrestricted content generation
+        content_filter: Content filtering level (none, basic, strict)
         
     Returns:
         Configured Image2VideoPipeline
@@ -651,7 +971,11 @@ def create_pipeline(
         enable_depth=enable_depth,
         enable_segmentation=enable_segmentation,
         enable_motion=enable_motion,
-        enable_consistency=enable_consistency
+        enable_consistency=enable_consistency,
+        enable_artifact_reduction=enable_artifact_reduction,
+        enable_furry_support=enable_furry_support,
+        enable_nsfw=enable_nsfw,
+        content_filter=content_filter
     )
     
     torch_device = get_torch_device(device) if device else None
