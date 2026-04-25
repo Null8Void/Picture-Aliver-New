@@ -75,11 +75,21 @@ class FurryMotionGenerator(nn.Module):
         elif mode == "cinematic":
             motion_type = "breathing"  
         elif mode == "zoom":
-            motion_type = "breathing"
+            motion_type = "zoom"
         elif mode == "pan":
-            motion_type = "tail_wag"
+            motion_type = "pan"
         elif mode == "subtle":
             motion_type = "fur"
+        elif mode == "furry":
+            motion_type = "tail_wag"
+        elif mode == "dance":
+            motion_type = "dance"
+        elif mode == "wave":
+            motion_type = "wave"
+        elif mode == "float":
+            motion_type = "floating"
+        elif mode == "bounce":
+            motion_type = "bounce"
         else:
             motion_type = "tail_wag"
         
@@ -90,18 +100,22 @@ class FurryMotionGenerator(nn.Module):
         
         # Generate flows based on motion type
         flows = []
-        if motion_type == "tail_wag":
-            flows = self._generate_tail(image, num_frames, intensity, speed)
-        elif motion_type == "ears":
-            flows = self._generate_ears(image, num_frames, intensity, speed)
-        elif motion_type == "breathing":
-            flows = self._generate_breathing(image, num_frames, intensity, speed)
-        elif motion_type == "wings":
-            flows = self._generate_wings(image, num_frames, intensity, speed)
-        elif motion_type == "fur":
-            flows = self._generate_fur(image, num_frames, intensity, speed)
-        else:
-            flows = self._generate_tail(image, num_frames, intensity, speed)
+        motion_types = {
+            "tail_wag": self._generate_tail,
+            "ears": self._generate_ears,
+            "breathing": self._generate_breathing,
+            "wings": self._generate_wings,
+            "fur": self._generate_fur,
+            "zoom": self._generate_zoom,
+            "pan": self._generate_pan,
+            "dance": self._generate_dance,
+            "wave": self._generate_wave,
+            "floating": self._generate_floating,
+            "bounce": self._generate_bounce,
+        }
+        
+        motion_fn = motion_types.get(motion_type, self._generate_tail)
+        flows = motion_fn(image, num_frames, intensity, speed)
         
         return MotionField(flows=flows, motion_type=motion_type, strength=intensity)
     
@@ -257,6 +271,166 @@ class FurryMotionGenerator(nn.Module):
             wave_strength = 5.0 * intensity
             dx = wave_strength * torch.sin(yy / h * 5 * np.pi + phase) * (1 - yy / h)
             dy = wave_strength * 0.5 * torch.sin(xx / w * 4 * np.pi + phase * 1.3)
+            
+            flows.append(torch.stack([dx, dy], dim=-1))
+        
+        return flows
+    
+    def _generate_zoom(
+        self,
+        image: torch.Tensor,
+        num_frames: int,
+        intensity: float,
+        speed: float
+    ) -> List[torch.Tensor]:
+        """Generate zoom in/out motion."""
+        _, h, w = image.shape
+        center_x, center_y = w * 0.5, h * 0.5
+        
+        flows = []
+        for t in range(num_frames):
+            phase = t / num_frames * 2 * np.pi * speed
+            zoom_factor = 0.1 * intensity * np.sin(phase)
+            
+            x = torch.arange(w, dtype=torch.float32, device=self.device)
+            y = torch.arange(h, dtype=torch.float32, device=self.device)
+            xx, yy = torch.meshgrid(x, y, indexing='xy')
+            
+            dx = (xx - center_x) * zoom_factor
+            dy = (yy - center_y) * zoom_factor
+            
+            flows.append(torch.stack([dx, dy], dim=-1))
+        
+        return flows
+    
+    def _generate_pan(
+        self,
+        image: torch.Tensor,
+        num_frames: int,
+        intensity: float,
+        speed: float
+    ) -> List[torch.Tensor]:
+        """Generate horizontal panning motion."""
+        _, h, w = image.shape
+        
+        flows = []
+        for t in range(num_frames):
+            phase = t / num_frames * 2 * np.pi * speed
+            offset = w * 0.1 * intensity * np.sin(phase)
+            
+            x = torch.arange(w, dtype=torch.float32, device=self.device)
+            y = torch.arange(h, dtype=torch.float32, device=self.device)
+            xx, yy = torch.meshgrid(x, y, indexing='xy')
+            
+            dx = torch.full_like(xx, offset)
+            dy = torch.zeros_like(xx)
+            
+            flows.append(torch.stack([dx, dy], dim=-1))
+        
+        return flows
+    
+    def _generate_dance(
+        self,
+        image: torch.Tensor,
+        num_frames: int,
+        intensity: float,
+        speed: float
+    ) -> List[torch.Tensor]:
+        """Generate energetic dance motion."""
+        _, h, w = image.shape
+        center_x, center_y = w * 0.5, h * 0.5
+        
+        flows = []
+        for t in range(num_frames):
+            phase = t / num_frames * 4 * np.pi * speed
+            
+            x = torch.arange(w, dtype=torch.float32, device=self.device)
+            y = torch.arange(h, dtype=torch.float32, device=self.device)
+            xx, yy = torch.meshgrid(x, y, indexing='xy')
+            
+            dx = 15 * intensity * torch.sin(phase * 2) * torch.cos((yy / h) * np.pi)
+            dy = 20 * intensity * torch.sin(phase * 3) * torch.cos((xx / w) * np.pi)
+            
+            flows.append(torch.stack([dx, dy], dim=-1))
+        
+        return flows
+    
+    def _generate_wave(
+        self,
+        image: torch.Tensor,
+        num_frames: int,
+        intensity: float,
+        speed: float
+    ) -> List[torch.Tensor]:
+        """Generate wave motion."""
+        _, h, w = image.shape
+        
+        flows = []
+        for t in range(num_frames):
+            phase = t / num_frames * 3 * np.pi * speed
+            
+            x = torch.arange(w, dtype=torch.float32, device=self.device)
+            y = torch.arange(h, dtype=torch.float32, device=self.device)
+            xx, yy = torch.meshgrid(x, y, indexing='xy')
+            
+            wave = 10 * intensity * torch.sin((xx / w * 4 + phase) * np.pi)
+            dx = wave * torch.sin((yy / h) * np.pi)
+            dy = 5 * intensity * torch.cos(phase) * torch.sin((xx / w) * np.pi)
+            
+            flows.append(torch.stack([dx, dy], dim=-1))
+        
+        return flows
+    
+    def _generate_floating(
+        self,
+        image: torch.Tensor,
+        num_frames: int,
+        intensity: float,
+        speed: float
+    ) -> List[torch.Tensor]:
+        """Generate gentle floating motion."""
+        _, h, w = image.shape
+        center_x, center_y = w * 0.5, h * 0.5
+        
+        flows = []
+        for t in range(num_frames):
+            phase = t / num_frames * 2 * np.pi * speed
+            
+            x = torch.arange(w, dtype=torch.float32, device=self.device)
+            y = torch.arange(h, dtype=torch.float32, device=self.device)
+            xx, yy = torch.meshgrid(x, y, indexing='xy')
+            
+            dx = 5 * intensity * torch.sin(phase)
+            dy = 10 * intensity * torch.sin(phase * 0.7)
+            
+            flows.append(torch.stack([
+                torch.full_like(xx, dx), 
+                torch.full_like(xx, dy)
+            ], dim=-1))
+        
+        return flows
+    
+    def _generate_bounce(
+        self,
+        image: torch.Tensor,
+        num_frames: int,
+        intensity: float,
+        speed: float
+    ) -> List[torch.Tensor]:
+        """Generate bouncing motion - up and down."""
+        _, h, w = image.shape
+        
+        flows = []
+        for t in range(num_frames):
+            t_norm = t / max(num_frames - 1, 1)
+            bounce_y = h * 0.2 * intensity * (1 - (2 * t_norm - 1) ** 2)
+            
+            x = torch.arange(w, dtype=torch.float32, device=self.device)
+            y = torch.arange(h, dtype=torch.float32, device=self.device)
+            xx, yy = torch.meshgrid(x, y, indexing='xy')
+            
+            dy = torch.full_like(xx, bounce_y)
+            dx = torch.zeros_like(xx)
             
             flows.append(torch.stack([dx, dy], dim=-1))
         
