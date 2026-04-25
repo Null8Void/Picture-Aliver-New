@@ -34,17 +34,27 @@ outputs/
 debug/
 uploads/
 
-# All node_modules (except essential packages)
+# All node_modules
 node_modules/
 
 # Mobile app
 mobile_app/node_modules/
 mobile_app/.expo/
 
-# Desktop Electron
+# Desktop Electron (rebuild from source)
 desktop/electron/node_modules/
+desktop/electron/release/
+
+# Binaries - download separately
+*.msi
+*.exe
 
 # Environment
 .env
 venv/
 .env.local
+
+# Test files
+test_red_ball.png
+Picture-Aliver.spec
+git-cred.txt
