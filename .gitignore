@@ -34,9 +34,15 @@ outputs/
 debug/
 uploads/
 
+# All node_modules (except essential packages)
+node_modules/
+
 # Mobile app
 mobile_app/node_modules/
 mobile_app/.expo/
+
+# Desktop Electron
+desktop/electron/node_modules/
 
 # Environment
 .env

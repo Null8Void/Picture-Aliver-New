@@ -250,23 +250,45 @@ class MiDaSWrapper(nn.Module):
     def __init__(self, device: torch.device):
         super().__init__()
         self.device = device
-        
+        self.uses_small = False
+        self._load_model()
+    
+    def _load_model(self):
+        """Load MiDaS model from torch hub."""
         try:
+            print("[MiDaS] Loading MiDaS_small model...")
             self.model = torch.hub.load(
                 "intel-isl/MiDaS",
                 "MiDaS_small",
+                pretrained=True,
                 trust_reported=True
             )
-            self.model.to(device)
+            self.model.eval()
+            self.model.to(self.device)
             self.uses_small = True
-        except Exception:
-            self.model = SimpleDepthEstimator(device=device)
+            print("[MiDaS] Model loaded successfully")
+        except Exception as e:
+            print(f"[MiDaS] Failed to load: {e}")
+            self.model = SimpleDepthEstimator(device=self.device)
             self.uses_small = False
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass."""
         if self.uses_small:
-            return self.model(x)
+            with torch.no_grad():
+                # MiDaS expects 3 channel input, BCHW format
+                if x.shape[1] == 1:
+                    x = x.repeat(1, 3, 1, 1)
+                prediction = self.model(x)
+                # Upsample to match input size
+                if prediction.shape[-2:] != x.shape[-2:]:
+                    prediction = F.interpolate(
+                        prediction,
+                        size=x.shape[-2:],
+                        mode='bilinear',
+                        align_corners=False
+                    )
+                return prediction
         return self.model(x)
 
 
@@ -276,20 +298,52 @@ class ZoeDepthWrapper(nn.Module):
     def __init__(self, device: torch.device):
         super().__init__()
         self.device = device
-        
+        self.uses_zoe = False
+        self._load_model()
+    
+    def _load_model(self):
+        """Load ZoeDepth model."""
         try:
-            from ZoeDepth import zoedepth
-            self.model = zoedepth.depth.models.ZoeDepth.get_ZoeD_N()
-            self.model.to(device)
+            print("[ZoeDepth] Loading ZoeDepth model...")
+            # Try using zoedepth package
+            from zoedepth import ZoeDepth
+            self.model = ZoeDepth.build_from_weights("Zoedepth_NK.pt")
+            self.model.to(self.device)
+            self.model.eval()
             self.uses_zoe = True
-        except Exception:
-            self.model = SimpleDepthEstimator(device=device)
-            self.uses_zoe = False
+            print("[ZoeDepth] Model loaded successfully")
+        except ImportError:
+            print("[ZoeDepth] Package not found, trying AutoModel...")
+            try:
+                from transformers import AutoModel
+                self.model = AutoModel.from_pretrained(
+                    "isl/zoe2",
+                    cache_dir="./models/huggingface"
+                )
+                self.model.to(self.device)
+                self.model.eval()
+                self.uses_zoe = True
+                print("[ZoeDepth] HuggingFace model loaded")
+            except Exception as e:
+                print(f"[ZoeDepth] Failed: {e}")
+                self.model = SimpleDepthEstimator(device=self.device)
+                self.uses_zoe = False
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass."""
         if self.uses_zoe:
-            return self.model(x)
+            with torch.no_grad():
+                if x.shape[1] == 1:
+                    x = x.repeat(1, 3, 1, 1)
+                prediction = self.model(x)
+                if prediction.shape[-2:] != x.shape[-2:]:
+                    prediction = F.interpolate(
+                        prediction,
+                        size=x.shape[-2:],
+                        mode='bilinear',
+                        align_corners=False
+                    )
+                return prediction
         return self.model(x)
 
 
@@ -312,8 +366,9 @@ class SimpleDepthEstimator(nn.Module):
             nn.ReLU()
         )
         
+        # Input: 3 (original) + 32 (edge features) + 3 (edges) = 38 channels
         self.depth_conv = nn.Sequential(
-            nn.Conv2d(35, 64, 3, padding=1),
+            nn.Conv2d(38, 64, 3, padding=1),
             nn.ReLU(),
             nn.Conv2d(64, 32, 3, padding=1),
             nn.ReLU(),

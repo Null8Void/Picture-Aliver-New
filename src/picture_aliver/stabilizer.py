@@ -317,11 +317,23 @@ class TemporalSmoother(nn.Module):
         sigma = kernel_size / 6
         
         kernel = self._gaussian_kernel(kernel_size, sigma)
-        kernel = kernel.view(1, 1, kernel_size, 1, 1).to(self.device)
+        kernel = kernel.view(1, 1, 1, kernel_size, 1).to(self.device)
         
-        padded = F.pad(frames, (0, 0, 0, 0, 0, 0, kernel_size//2, kernel_size//2), mode="replicate")
-        
-        smoothed = F.conv3d(padded, kernel.expand(c, 1, kernel_size, 1, 1))
+        # Handle 5D tensor properly (B, T, C, H, W)
+        if frames.dim() == 5:
+            # Apply temporal smoothing per channel
+            b, t, c, h, w = frames.shape
+            smoothed = torch.zeros_like(frames)
+            for i in range(c):
+                frame_ch = frames[:, :, i:i+1, :, :]  # (B, T, 1, H, W)
+                padded = F.pad(frame_ch, (0, 0, 0, 0, kernel_size//2, kernel_size//2), mode="replicate")
+                kernel_ch = kernel.view(1, 1, kernel_size, 1, 1)
+                smoothed[:, :, i:i+1, :, :] = F.conv3d(padded, kernel_ch.expand(1, 1, kernel_size, 1, 1), padding=kernel_size//2)
+        else:
+            # Fallback for 4D
+            kernel = kernel.view(1, 1, kernel_size, 1, 1).to(self.device)
+            padded = F.pad(frames, (0, 0, 0, 0, kernel_size//2, kernel_size//2), mode="replicate")
+            smoothed = F.conv3d(padded, kernel.expand(c, 1, kernel_size, 1, 1))
         
         if squeeze_batch:
             smoothed = smoothed.squeeze(0)

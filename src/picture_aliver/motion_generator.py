@@ -1,9 +1,22 @@
 from __future__ import annotations
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
+from dataclasses import dataclass
+
+
+@dataclass
+class MotionField:
+    """Container for motion field data."""
+    flows: List[torch.Tensor]
+    motion_type: str = "unknown"
+    strength: float = 0.8
+    
+    def __len__(self) -> int:
+        return len(self.flows)
 
 
 class FurryMotionGenerator(nn.Module):
@@ -31,10 +44,15 @@ class FurryMotionGenerator(nn.Module):
         motion_type: str = "tail_wag",
         intensity: float = 0.8,
         speed: float = 1.0,
-        num_frames: int = 24
+        num_frames: int = 24,
+        depth: Optional[torch.Tensor] = None,
+        segmentation: Optional[Any] = None,
+        mode: str = "auto",
+        strength: float = 0.8,
+        motion_prompt: Optional[str] = None
     ) -> List[torch.Tensor]:
         """
-        Generate furry character motion.
+        Generate motion.
         
         Args:
             image: Input image tensor (C, H, W)
@@ -42,26 +60,50 @@ class FurryMotionGenerator(nn.Module):
             intensity: Motion strength (0-1)
             speed: Motion speed multiplier
             num_frames: Number of frames
+            depth: Optional depth tensor
+            segmentation: Optional segmentation result
+            mode: Motion mode (auto, cinematic, etc.)
+            strength: Motion strength
+            motion_prompt: Optional motion prompt string
             
         Returns:
             List of flow fields
         """
+        # Map mode to motion_type
+        if mode == "auto":
+            motion_type = "tail_wag"
+        elif mode == "cinematic":
+            motion_type = "breathing"  
+        elif mode == "zoom":
+            motion_type = "breathing"
+        elif mode == "pan":
+            motion_type = "tail_wag"
+        elif mode == "subtle":
+            motion_type = "fur"
+        else:
+            motion_type = "tail_wag"
+        
+        # Use intensity or strength
+        intensity = strength if strength != 0.8 else intensity
+        
         _, h, w = image.shape
         
+        # Generate flows based on motion type
+        flows = []
         if motion_type == "tail_wag":
-            return self._generate_tail(image, num_frames, intensity, speed)
+            flows = self._generate_tail(image, num_frames, intensity, speed)
         elif motion_type == "ears":
-            return self._generate_ears(image, num_frames, intensity, speed)
+            flows = self._generate_ears(image, num_frames, intensity, speed)
         elif motion_type == "breathing":
-            return self._generate_breathing(image, num_frames, intensity, speed)
+            flows = self._generate_breathing(image, num_frames, intensity, speed)
         elif motion_type == "wings":
-            return self._generate_wings(image, num_frames, intensity, speed)
+            flows = self._generate_wings(image, num_frames, intensity, speed)
         elif motion_type == "fur":
-            return self._generate_fur(image, num_frames, intensity, speed)
-        elif motion_type == "combined":
-            return self._generate_combined(image, num_frames, intensity, speed)
+            flows = self._generate_fur(image, num_frames, intensity, speed)
         else:
-            return self._generate_tail(image, num_frames, intensity, speed)
+            flows = self._generate_tail(image, num_frames, intensity, speed)
+        
+        return MotionField(flows=flows, motion_type=motion_type, strength=intensity)
     
     def _generate_tail(
         self,
@@ -77,7 +119,7 @@ class FurryMotionGenerator(nn.Module):
         
         flows = []
         for t in range(num_frames):
-            phase = t / num_frames * 4 * np.pi * speed
+            t_float = torch.tensor(t / num_frames * 4 * np.pi * speed, dtype=torch.float32, device=self.device)
             
             x = torch.arange(w, dtype=torch.float32, device=self.device)
             y = torch.arange(h, dtype=torch.float32, device=self.device)
@@ -87,8 +129,8 @@ class FurryMotionGenerator(nn.Module):
             falloff = torch.exp(-dist / (w * 0.3))
             
             amplitude = 15.0 * intensity
-            dx = amplitude * torch.sin(phase) * falloff * (xx - center_x) / (dist + 1)
-            dy = amplitude * 0.3 * torch.sin(phase * 0.7) * falloff
+            dx = amplitude * torch.sin(t_float) * falloff * (xx - center_x) / (dist + 1)
+            dy = amplitude * 0.3 * torch.sin(t_float * 0.7) * falloff
             
             dx = torch.nan_to_num(dx, nan=0.0)
             dy = torch.nan_to_num(dy, nan=0.0)

@@ -231,7 +231,9 @@ class SegmentationModule:
         
         categories = []
         for cls_idx in unique_classes:
-            if cls_idx < len(self.class_names):
+            # Convert to int in case it's a float
+            cls_idx = int(cls_idx)
+            if cls_idx < len(self.class_names) and cls_idx >= 0:
                 categories.append(self.class_names[cls_idx])
         
         return categories

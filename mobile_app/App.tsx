@@ -9,8 +9,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { StatusBar } from 'expo-status-bar';
-import HomeScreen from './screens/HomeScreen';
-import SettingsScreen from './screens/SettingsScreen';
+import HomeScreen from './lib/screens/HomeScreen';
+import SettingsScreen from './lib/screens/SettingsScreen';
 
 // Navigation types
 type RootStackParamList = {
