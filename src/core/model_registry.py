@@ -63,51 +63,154 @@ class ModelRegistry:
         self._populate_registry()
     
     def _populate_registry(self):
-        """Populate registry with all available models."""
+        """Populate registry with ~23 main I2V models for video generation."""
         
-        # =============================================
-        # IMAGE-TO-VIDEO MODELS - UNRESTRICTED
-        # =============================================
+        # =============================================================================
+        # PRIMARY MODELS (Wan 2.1, Wan 2.2, LightX2V) - Recommended first
+        # =============================================================================
+        
+        self.register(ModelInfo(
+            name="Wan 2.1",
+            repo_id="Wan-AI/Wan2.1-I2V-14B-480P-Diffusers",
+            model_path="wan21",
+            category=ModelCategory.I2V,
+            rating=ContentRating.SAFE,
+            vram_mb=16000,
+            resolution=(480, 832),
+            max_frames=81,
+        ))
+        
+        self.register(ModelInfo(
+            name="Wan 2.2",
+            repo_id="Wan-AI/Wan2.2-I2V-A14B-Diffusers",
+            model_path="wan22",
+            category=ModelCategory.I2V,
+            rating=ContentRating.SAFE,
+            vram_mb=16000,
+            resolution=(480, 832),
+            max_frames=81,
+        ))
+        
+        self.register(ModelInfo(
+            name="LightX2V",
+            repo_id="lightx2v/Wan2.2-Distill-Models",
+            model_path="lightx2v",
+            category=ModelCategory.I2V,
+            rating=ContentRating.SAFE,
+            vram_mb=8000,
+            resolution=(480, 832),
+            max_frames=81,
+        ))
+        
+        # =============================================================================
+        # GENERAL I2V MODELS - Safe/General content
+        # =============================================================================
+        
+        self.register(ModelInfo(
+            name="SVD (Stable Video Diffusion)",
+            repo_id="stabilityai/stable-video-diffusion",
+            model_path="svd",
+            category=ModelCategory.I2V,
+            rating=ContentRating.SAFE,
+            vram_mb=12000,
+            resolution=(576, 1024),
+            max_frames=25,
+        ))
+        
+        self.register(ModelInfo(
+            name="SVD-XT",
+            repo_id="stabilityai/stable-video-diffusion-img2vid-xt",
+            model_path="svd_xt",
+            category=ModelCategory.I2V,
+            rating=ContentRating.SAFE,
+            vram_mb=12000,
+            resolution=(576, 1024),
+            max_frames=25,
+        ))
+        
+        self.register(ModelInfo(
+            name="ZeroScope",
+            repo_id="cerspense/zeroscope_v2_576w",
+            model_path="zeroscope",
+            category=ModelCategory.I2V,
+            rating=ContentRating.SAFE,
+            vram_mb=6000,
+            resolution=(320, 576),
+            max_frames=16,
+        ))
+        
+        self.register(ModelInfo(
+            name="I2VGen-XL",
+            repo_id="ali-vilab/i2vgen-xl",
+            model_path="i2vgen_xl",
+            category=ModelCategory.I2V,
+            rating=ContentRating.SAFE,
+            vram_mb=10000,
+            resolution=(512, 512),
+            max_frames=16,
+        ))
+        
+        # =============================================================================
+        # HUNYUAN/LTX/COGVIDEO MODELS
+        # =============================================================================
+        
+        self.register(ModelInfo(
+            name="HunyuanVideo",
+            repo_id="tencent/HunyuanVideo-1.5",
+            model_path="hunyuan",
+            category=ModelCategory.I2V,
+            rating=ContentRating.SAFE,
+            vram_mb=16000,
+            resolution=(480, 832),
+            max_frames=81,
+        ))
+        
+        self.register(ModelInfo(
+            name="LTX-Video",
+            repo_id="Lightricks/LTX-Video",
+            model_path="ltx",
+            category=ModelCategory.I2V,
+            rating=ContentRating.SAFE,
+            vram_mb=8000,
+            resolution=(480, 704),
+            max_frames=121,
+        ))
+        
+        self.register(ModelInfo(
+            name="CogVideo",
+            repo_id="THUDM/CogVideo-i2v",
+            model_path="cogvideo",
+            category=ModelCategory.I2V,
+            rating=ContentRating.SAFE,
+            vram_mb=12000,
+            resolution=(320, 512),
+            max_frames=32,
+        ))
+        
+        # =============================================================================
+        # UNRESTRICTED I2V MODELS (NSFW)
+        # =============================================================================
         
         self.register(ModelInfo(
             name="Open-SVD",
             repo_id="camenduru/open-svd",
-            model_path="svd",
+            model_path="svd_open",
             category=ModelCategory.I2V,
             rating=ContentRating.NSFW,
             vram_mb=12000,
             resolution=(576, 1024),
             max_frames=25,
-            variants={
-                "fp16": "camenduru/open-svd",
-                "int8": "camenduru/open-svd-int8",
-            }
         ))
         
         self.register(ModelInfo(
-            name="ZeroScope-v2",
-            repo_id="cerspense/zeroscope_v2_576w",
-            model_path="zeroscope",
+            name="ZeroScope Unrestricted",
+            repo_id="cerspense/zeroscope_v2_576w_dw",
+            model_path="zeroscope_open",
             category=ModelCategory.I2V,
-            rating=ContentRating.MATURE,
+            rating=ContentRating.NSFW,
             vram_mb=6000,
             resolution=(320, 576),
-            max_frames=16,
-            variants={
-                "xl": "cerspense/zeroscope_v2_576w",
-                "xl_dw": "cerspense/zeroscope_v2_576w_dw",
-            }
-        ))
-        
-        self.register(ModelInfo(
-            name="I2VGen-XL-Unrestricted",
-            repo_id="ali-vilab/i2vgen-xl",
-            model_path="i2vgen-xl",
-            category=ModelCategory.I2V,
-            rating=ContentRating.MATURE,
-            vram_mb=10000,
-            resolution=(512, 512),
-            max_frames=16,
+            max_frames=24,
         ))
         
         self.register(ModelInfo(
@@ -124,52 +227,11 @@ class ModelRegistry:
         ))
         
         self.register(ModelInfo(
-            name="OpenGIF-Unrestricted",
-            repo_id=" caut的英雄/openGIF",
-            model_path="opengif",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=10000,
-            resolution=(512, 512),
-            max_frames=32,
-        ))
-        
-        self.register(ModelInfo(
-            name="ModelScope-DiT",
-            repo_id="ali-vilab/modelscope-dit-text-to-video",
-            model_path="modelscope-dit",
-            category=ModelCategory.I2V,
-            rating=ContentRating.MATURE,
-            vram_mb=24000,
-            resolution=(256, 256),
-            max_frames=16,
-        ))
-        
-        # =============================================
-        # IMAGE-TO-VIDEO MODELS - GENERAL/SAFE
-        # =============================================
-        
-        self.register(ModelInfo(
-            name="SVD (Stable Video Diffusion)",
-            repo_id="stabilityai/stable-video-diffusion",
-            model_path="svd",
-            category=ModelCategory.I2V,
-            rating=ContentRating.SAFE,
-            vram_mb=12000,
-            resolution=(576, 1024),
-            max_frames=25,
-            variants={
-                "svd": "stabilityai/stable-video-diffusion",
-                "svd_xt": "stabilityai/stable-video-diffusion-img2vid-xt",
-            }
-        ))
-        
-        self.register(ModelInfo(
             name="AnimateDiff-SDXL",
             repo_id="guoyww/animatediff-motion-adapter-sdxl-beta",
-            model_path="animatediff-sdxl",
+            model_path="animatediff_sdxl",
             category=ModelCategory.I2V,
-            rating=ContentRating.SAFE,
+            rating=ContentRating.NSFW,
             vram_mb=12000,
             resolution=(1024, 1024),
             max_frames=16,
@@ -177,295 +239,9 @@ class ModelRegistry:
             base_model="stabilityai/stable-diffusion-xl-base-1.0",
         ))
         
-        self.register(ModelInfo(
-            name="AnimateDiff-SD15",
-            repo_id="guoyww/animatediff-motion-adapter",
-            model_path="animatediff-sd15",
-            category=ModelCategory.I2V,
-            rating=ContentRating.SAFE,
-            vram_mb=8000,
-            resolution=(512, 512),
-            max_frames=16,
-            requires_base=True,
-            base_model="runwayml/stable-diffusion-v1-5",
-        ))
-        
-        # =============================================
-        # DEPTH ESTIMATION MODELS
-        # =============================================
-        
-        # Unrestricted
-        self.register(ModelInfo(
-            name="MiDaS v3.1",
-            repo_id="Intel/dpt-hybrid-midas",
-            model_path="midas",
-            category=ModelCategory.DEPTH,
-            rating=ContentRating.MATURE,
-            vram_mb=2000,
-            resolution=(384, 384),
-        ))
-        
-        self.register(ModelInfo(
-            name="Depth-Anything",
-            repo_id="LiheYoung/depth_anything_vitl14",
-            model_path="depth-anything",
-            category=ModelCategory.DEPTH,
-            rating=ContentRating.MATURE,
-            vram_mb=3000,
-            resolution=(518, 518),
-        ))
-        
-        self.register(ModelInfo(
-            name="LeRes",
-            repo_id="liujh04/leres",
-            model_path="leres",
-            category=ModelCategory.DEPTH,
-            rating=ContentRating.MATURE,
-            vram_mb=2000,
-            resolution=(448, 448),
-        ))
-        
-        # General
-        self.register(ModelInfo(
-            name="ZoeDepth",
-            repo_id="lllyasviel/ldm",
-            model_path="zoedepth",
-            category=ModelCategory.DEPTH,
-            rating=ContentRating.SAFE,
-            vram_mb=2000,
-            resolution=(384, 384),
-        ))
-        
-        self.register(ModelInfo(
-            name="Marigold",
-            repo_id="prs-eth/marigold-depth",
-            model_path="marigold",
-            category=ModelCategory.DEPTH,
-            rating=ContentRating.SAFE,
-            vram_mb=6000,
-            resolution=(768, 768),
-            quantization="fp16",
-        ))
-        
-        # =============================================
-        # SEGMENTATION MODELS
-        # =============================================
-        
-        # Unrestricted
-        self.register(ModelInfo(
-            name="SAM-ViT-Huge",
-            repo_id="facebook/sam-vit-huge",
-            model_path="sam",
-            category=ModelCategory.SEGMENTATION,
-            rating=ContentRating.MATURE,
-            vram_mb=2500,
-            resolution=(1024, 1024),
-        ))
-        
-        self.register(ModelInfo(
-            name="SAM-ViT-Base",
-            repo_id="facebook/sam-vit-base",
-            model_path="sam",
-            category=ModelCategory.SEGMENTATION,
-            rating=ContentRating.MATURE,
-            vram_mb=400,
-            resolution=(1024, 1024),
-        ))
-        
-        self.register(ModelInfo(
-            name="MobileSAM",
-            repo_id="dh2811-group/mobile-sam",
-            model_path="mobile-sam",
-            category=ModelCategory.SEGMENTATION,
-            rating=ContentRating.MATURE,
-            vram_mb=300,
-            resolution=(1024, 1024),
-            quantization="int8",
-        ))
-        
-        # General
-        self.register(ModelInfo(
-            name="SAM-ViT-Large",
-            repo_id="facebook/sam-vit-large",
-            model_path="sam",
-            category=ModelCategory.SEGMENTATION,
-            rating=ContentRating.SAFE,
-            vram_mb=1000,
-            resolution=(1024, 1024),
-        ))
-        
-        self.register(ModelInfo(
-            name="DeepLabV3+",
-            repo_id="google/deeplabv3_resnet101",
-            model_path="deeplabv3",
-            category=ModelCategory.SEGMENTATION,
-            rating=ContentRating.SAFE,
-            vram_mb=1000,
-            resolution=(512, 512),
-        ))
-        
-        # =============================================
-        # MOTION CONDITIONING MODELS
-        # =============================================
-        
-        self.register(ModelInfo(
-            name="AnimateDiff-Motion-Adapter",
-            repo_id="camenduru/animatediff-motion-adapter",
-            model_path="motion-adapter",
-            category=ModelCategory.MOTION,
-            rating=ContentRating.NSFW,
-            vram_mb=1000,
-        ))
-        
-        self.register(ModelInfo(
-            name="AnimateDiff-Motion-Adapter-SDXL",
-            repo_id="guoyww/animatediff-motion-adapter-sdxl-beta",
-            model_path="motion-adapter-sdxl",
-            category=ModelCategory.MOTION,
-            rating=ContentRating.SAFE,
-            vram_mb=2000,
-        ))
-        
-        self.register(ModelInfo(
-            name="MotionDirector",
-            repo_id="MotionDirector/MotionDirector",
-            model_path="motion-director",
-            category=ModelCategory.MOTION,
-            rating=ContentRating.NSFW,
-            vram_mb=4000,
-        ))
-        
-        # =============================================
-        # FRAME INTERPOLATION MODELS
-        # =============================================
-        
-        self.register(ModelInfo(
-            name="RIFE-v4",
-            repo_id="hzwer/rife",
-            model_path="rife",
-            category=ModelCategory.INTERPOLATION,
-            rating=ContentRating.MATURE,
-            vram_mb=2000,
-            resolution=(480, 480),
-        ))
-        
-        self.register(ModelInfo(
-            name="RIFE-Pro",
-            repo_id="hzwer/rife-ncnn",
-            model_path="rife-ncnn",
-            category=ModelCategory.INTERPOLATION,
-            rating=ContentRating.MATURE,
-            vram_mb=500,
-            resolution=(480, 480),
-            is_torchscript=True,
-        ))
-        
-        self.register(ModelInfo(
-            name="AMT-S",
-            repo_id="google-research/amt",
-            model_path="amt",
-            category=ModelCategory.INTERPOLATION,
-            rating=ContentRating.MATURE,
-            vram_mb=3000,
-            resolution=(512, 512),
-        ))
-        
-        self.register(ModelInfo(
-            name="CAIN",
-            repo_id="myungsub/cain",
-            model_path="cain",
-            category=ModelCategory.INTERPOLATION,
-            rating=ContentRating.MATURE,
-            vram_mb=1000,
-            resolution=(256, 256),
-        ))
-        
-        # =============================================
-        # NSFW/UNRESTRICTED MOTION MODELS
-        # =============================================
-        
-        self.register(ModelInfo(
-            name="AnimateDiff-Mature-Adapter",
-            repo_id="guoyww/animatediff-motion-adapter",
-            model_path="motion-adapter-mature",
-            category=ModelCategory.MOTION,
-            rating=ContentRating.MATURE,
-            vram_mb=1500,
-        ))
-        
-        self.register(ModelInfo(
-            name="Open-Motion-Director",
-            repo_id="modelscope/motion-director",
-            model_path="motion-director-open",
-            category=ModelCategory.MOTION,
-            rating=ContentRating.NSFW,
-            vram_mb=4000,
-        ))
-        
-        self.register(ModelInfo(
-            name="Physics-Based-Cloth",
-            repo_id="internal/cloth-physics",
-            model_path="cloth-physics",
-            category=ModelCategory.MOTION,
-            rating=ContentRating.NSFW,
-            vram_mb=500,
-            is_torchscript=True,
-        ))
-        
-        self.register(ModelInfo(
-            name="Hair-Dynamics-Unrestricted",
-            repo_id="internal/hair-dynamics",
-            model_path="hair-dynamics",
-            category=ModelCategory.MOTION,
-            rating=ContentRating.NSFW,
-            vram_mb=800,
-            is_torchscript=True,
-        ))
-        
-        # =============================================
-        # NSFW I2V MODELS (Fast motion optimization)
-        # =============================================
-        
-        self.register(ModelInfo(
-            name="Open-SVD-Fast",
-            repo_id="camenduru/open-svd",
-            model_path="svd-fast",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=10000,
-            resolution=(512, 768),
-            max_frames=25,
-            variants={
-                "fast": "camenduru/open-svd",
-                "quality": "camenduru/open-svd-xt",
-            }
-        ))
-        
-        self.register(ModelInfo(
-            name="ZeroScope-Unrestricted",
-            repo_id="cerspense/zeroscope_v2_576w_dw",
-            model_path="zeroscope-open",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=6000,
-            resolution=(320, 576),
-            max_frames=24,
-        ))
-        
-        self.register(ModelInfo(
-            name="MotionBoost-I2V",
-            repo_id="modelscope/motionboost",
-            model_path="motionboost",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=12000,
-            resolution=(512, 512),
-            max_frames=32,
-        ))
-        
-        # =============================================
-        # FURRY-SPECIFIC MODELS
-        # =============================================
+        # =============================================================================
+        # FURRY/STYLE MODELS (NSFW) - Top choices for character animation
+        # =============================================================================
         
         self.register(ModelInfo(
             name="Yiffymix",
@@ -482,7 +258,7 @@ class ModelRegistry:
         self.register(ModelInfo(
             name="Yiffymix-V2",
             repo_id="stablediffusion/yiffymix-v2",
-            model_path="yiffymix-v2",
+            model_path="yiffymix_v2",
             category=ModelCategory.I2V,
             rating=ContentRating.NSFW,
             vram_mb=8000,
@@ -506,57 +282,9 @@ class ModelRegistry:
         self.register(ModelInfo(
             name="Fluffyrock-Unbound",
             repo_id="stablediffusion/fluffyrock-unbound",
-            model_path="fluffyrock-unbound",
+            model_path="fluffyrock_unbound",
             category=ModelCategory.I2V,
             rating=ContentRating.NSFW,
-            vram_mb=8000,
-            resolution=(1024, 1024),
-            max_frames=24,
-            base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
-        
-        self.register(ModelInfo(
-            name="Dreamshaper",
-            repo_id="lykon/dreamshaper",
-            model_path="dreamshaper",
-            category=ModelCategory.I2V,
-            rating=ContentRating.MATURE,
-            vram_mb=4000,
-            resolution=(512, 768),
-            max_frames=16,
-            base_model="runwayml/stable-diffusion-v1-5",
-        ))
-        
-        self.register(ModelInfo(
-            name="Dreamshaper-XL",
-            repo_id="lykon/dreamshaper-xl",
-            model_path="dreamshaper-xl",
-            category=ModelCategory.I2V,
-            rating=ContentRating.MATURE,
-            vram_mb=8000,
-            resolution=(1024, 1024),
-            max_frames=24,
-            base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
-        
-        self.register(ModelInfo(
-            name="Compass-Mix",
-            repo_id="stablediffusion/compass-mix",
-            model_path="compass-mix",
-            category=ModelCategory.I2V,
-            rating=ContentRating.MATURE,
-            vram_mb=4000,
-            resolution=(512, 512),
-            max_frames=16,
-            base_model="runwayml/stable-diffusion-v1-5",
-        ))
-        
-        self.register(ModelInfo(
-            name="Compass-Mix-XL",
-            repo_id="stablediffusion/compass-mix-xl",
-            model_path="compass-mix-xl",
-            category=ModelCategory.I2V,
-            rating=ContentRating.MATURE,
             vram_mb=8000,
             resolution=(1024, 1024),
             max_frames=24,
@@ -587,10 +315,14 @@ class ModelRegistry:
             base_model="stabilityai/stable-diffusion-xl-base-1.0",
         ))
         
+        # =============================================================================
+        # MATURE-RATED MODELS
+        # =============================================================================
+        
         self.register(ModelInfo(
-            name="FeralCraft",
-            repo_id="furry/feralcraft",
-            model_path="feralcraft",
+            name="Dreamshaper",
+            repo_id="lykon/dreamshaper",
+            model_path="dreamshaper",
             category=ModelCategory.I2V,
             rating=ContentRating.MATURE,
             vram_mb=4000,
@@ -600,85 +332,9 @@ class ModelRegistry:
         ))
         
         self.register(ModelInfo(
-            name="Kemonomimi-Mix",
-            repo_id="furry/kemonomimi",
-            model_path="kemonomimi",
-            category=ModelCategory.I2V,
-            rating=ContentRating.MATURE,
-            vram_mb=8000,
-            resolution=(1024, 1024),
-            max_frames=24,
-            base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
-        
-        self.register(ModelInfo(
-            name="CreatureCraft",
-            repo_id="furry/creaturecraft",
-            model_path="creaturecraft",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=8000,
-            resolution=(1024, 1024),
-            max_frames=24,
-            base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
-        
-        # =============================================
-        # ADDITIONAL FURRY/STYLE MODELS
-        # =============================================
-        
-        self.register(ModelInfo(
-            name="BluePencil",
-            repo_id="furry/bluepencil",
-            model_path="bluepencil",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=8000,
-            resolution=(1024, 1024),
-            max_frames=24,
-            base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
-        
-        self.register(ModelInfo(
-            name="KotosMix",
-            repo_id="furry/kotosmix",
-            model_path="kotosmix",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=8000,
-            resolution=(1024, 1024),
-            max_frames=24,
-            base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
-        
-        self.register(ModelInfo(
-            name="KotosMix-V2",
-            repo_id="furry/kotosmix-v2",
-            model_path="kotosmix-v2",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=8000,
-            resolution=(1024, 1024),
-            max_frames=24,
-            base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
-        
-        self.register(ModelInfo(
-            name="MeinaMerge",
-            repo_id="meit大陆/meina-merge",
-            model_path="meina-merge",
-            category=ModelCategory.I2V,
-            rating=ContentRating.MATURE,
-            vram_mb=8000,
-            resolution=(1024, 1024),
-            max_frames=24,
-            base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
-        
-        self.register(ModelInfo(
-            name="Anything-v5",
-            repo_id="andite/anything-v5",
-            model_path="anything-v5",
+            name="Dreamshaper-XL",
+            repo_id="lykon/dreamshaper-xl",
+            model_path="dreamshaper_xl",
             category=ModelCategory.I2V,
             rating=ContentRating.MATURE,
             vram_mb=8000,
@@ -690,61 +346,27 @@ class ModelRegistry:
         self.register(ModelInfo(
             name="Pony-Diffusion",
             repo_id="SillyMER/pony-diffusion",
-            model_path="pony-diffusion",
+            model_path="pony_diffusion",
             category=ModelCategory.I2V,
             rating=ContentRating.NSFW,
             vram_mb=8000,
             resolution=(1024, 1024),
             max_frames=24,
             base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
+))
+        
+        # =============================================================================
+        # DEPTH ESTIMATION MODELS
+        # =============================================================================
         
         self.register(ModelInfo(
-            name="RC_Models",
-            repo_id="rc-models/rc-video",
-            model_path="rc-models",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=8000,
-            resolution=(1024, 1024),
-            max_frames=24,
-            base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
-        
-        self.register(ModelInfo(
-            name="FurrySplice",
-            repo_id="furry/furrysplice",
-            model_path="furrysplice",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=8000,
-            resolution=(1024, 1024),
-            max_frames=24,
-            base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
-        
-        self.register(ModelInfo(
-            name="AnthroFury",
-            repo_id="furry/anthrofury",
-            model_path="anthrofury",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=8000,
-            resolution=(1024, 1024),
-            max_frames=24,
-            base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
-        
-        self.register(ModelInfo(
-            name="FurLora",
-            repo_id="furry/furlora",
-            model_path="furlora",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=4000,
-            resolution=(512, 768),
-            max_frames=16,
-            base_model="runwayml/stable-diffusion-v1-5",
+            name="ZoeDepth",
+            repo_id="lllyasviel/ldm",
+            model_path="zoedepth",
+            category=ModelCategory.DEPTH,
+            rating=ContentRating.SAFE,
+            vram_mb=2000,
+            resolution=(384, 384),
         ))
     
     def register(self, model: ModelInfo):

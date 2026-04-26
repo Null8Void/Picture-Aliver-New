@@ -1045,6 +1045,9 @@ class MainWindow(QMainWindow):
                 available.append((model_id, display_name))
                 logger.info(f"[Model Discovery] {model.name} [{model.rating.value}]")
             
+            # Add legacy pipeline
+            available.append(("legacy", "Legacy Pipeline"))
+            
             logger.info(f"[Model Discovery] Found {len(i2v_models)} I2V models")
             
         except ImportError as e:
