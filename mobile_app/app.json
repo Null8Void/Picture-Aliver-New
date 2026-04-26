@@ -4,49 +4,13 @@
     "slug": "picture-aliver",
     "version": "1.0.0",
     "orientation": "portrait",
+    "icon": "assets/icon.png",
     "userInterfaceStyle": "light",
-    "assetBundlePatterns": [
-      "**/*"
-    ],
     "ios": {
-      "supportsTablet": true,
-      "bundleIdentifier": "com.picturealiver.mobile",
-      "infoPlist": {
-        "NSCameraUsageDescription": "Take photos for video generation",
-        "NSPhotoLibraryUsageDescription": "Select images for video generation",
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
-        }
-      }
+      "bundleIdentifier": "com.picturealiver.mobile"
     },
     "android": {
-      "package": "com.picturealiver.mobile",
-      "versionCode": 1,
-      "permissions": [
-        "CAMERA",
-        "INTERNET",
-        "READ_EXTERNAL_STORAGE",
-        "WRITE_EXTERNAL_STORAGE",
-        "ACCESS_NETWORK_STATE"
-      ],
-      "extra": {
-        "eas": {
-          "projectId": "picture-aliver-mobile"
-        }
-      }
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-image-picker",
-      "expo-av",
-      "expo-file-system"
-    ],
-    "extra": {
-      "eas": {
-        "projectId": "picture-aliver-mobile"
-      }
+      "package": "com.picturealiver.mobile"
     }
   }
 }
