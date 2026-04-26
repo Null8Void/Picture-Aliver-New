@@ -1,10 +1,4 @@
 {
   "name": "picture-aliver",
-  "version": "1.0.0",
-  "main": "index.js",
-  "dependencies": {
-    "expo": "~52.0.0"
-  },
-  "devDependencies": {},
-  "private": true
+  "version": "1.0.0"
 }
