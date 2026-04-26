@@ -41,7 +41,13 @@ logger = logging.getLogger("picture_aliver.models")
 class ModelType(Enum):
     """Supported model types."""
     WAN21 = "wan21"
+    WAN22 = "wan22"
     LIGHTX2V = "lightx2v"
+    HUNYUAN = "hunyuan"
+    LTX = "ltx"
+    COGVIDEO = "cogvideo"
+    SVD = "svd"
+    ZEROSCOPE = "zeroscope"
     LEGACY = "legacy"
 
 
@@ -86,7 +92,7 @@ class GenerationResult:
 class ModelConfig:
     """Configuration for model."""
     model_type: ModelType = ModelType.WAN21
-    model_id: str = ""
+    model_id: str = "Wan-AI/Wan2.1-I2V-14B-480P-Diffusers"
     num_frames: int = 81
     guidance_scale: float = 5.0
     num_inference_steps: int = 40
@@ -141,8 +147,20 @@ class VideoModel:
         try:
             if self.config.model_type == ModelType.WAN21:
                 success = self._load_wan21()
+            elif self.config.model_type == ModelType.WAN22:
+                success = self._load_wan22()
             elif self.config.model_type == ModelType.LIGHTX2V:
                 success = self._load_lightx2v()
+            elif self.config.model_type == ModelType.HUNYUAN:
+                success = self._load_hunyuan()
+            elif self.config.model_type == ModelType.LTX:
+                success = self._load_ltx()
+            elif self.config.model_type == ModelType.COGVIDEO:
+                success = self._load_cogvideo()
+            elif self.config.model_type == ModelType.SVD:
+                success = self._load_svd()
+            elif self.config.model_type == ModelType.ZEROSCOPE:
+                success = self._load_zeroscope()
             elif self.config.model_type == ModelType.LEGACY:
                 success = self._load_legacy()
             else:
@@ -227,6 +245,153 @@ class VideoModel:
             self._logger.exception(f"LightX2V load failed: {e}")
             return False
     
+    def _load_wan22(self) -> bool:
+        """Load Wan 2.2 model via Diffusers."""
+        try:
+            from diffusers import WanImageToVideoPipeline
+            from diffusers.utils import export_to_video, load_image
+            
+            dtype = getattr(torch, self.config.torch_dtype, torch.bfloat16)
+            self._logger.info(f"Loading Wan 2.2: {self.config.model_id}")
+            
+            self._pipeline = WanImageToVideoPipeline.from_pretrained(
+                self.config.model_id,
+                torch_dtype=dtype,
+            )
+            
+            if self.config.enable_offload:
+                self._pipeline.enable_model_cpu_offload()
+            else:
+                self._pipeline.to(self._device)
+            
+            self._pipeline_utils = {"load_image": load_image, "export_to_video": export_to_video}
+            self._logger.info("Wan 2.2 loaded successfully")
+            return True
+            
+        except Exception as e:
+            self._logger.exception(f"Wan 2.2 load failed: {e}")
+            return False
+    
+    def _load_hunyuan(self) -> bool:
+        """Load HunyuanVideo via Diffusers."""
+        try:
+            from diffusers import HunyuanVideoPipeline
+            from diffusers.utils import export_to_video, load_image
+            
+            self._logger.info(f"Loading HunyuanVideo: {self.config.model_id}")
+            
+            self._pipeline = HunyuanVideoPipeline.from_pretrained(
+                self.config.model_id,
+                torch_dtype=torch.bfloat16,
+            )
+            
+            if self.config.enable_offload:
+                self._pipeline.enable_model_cpu_offload()
+            
+            self._pipeline_utils = {"load_image": load_image, "export_to_video": export_to_video}
+            self._logger.info("HunyuanVideo loaded successfully")
+            return True
+            
+        except Exception as e:
+            self._logger.exception(f"HunyuanVideo load failed: {e}")
+            return False
+    
+    def _load_ltx(self) -> bool:
+        """Load LTX-Video via Diffusers."""
+        try:
+            from diffusers import LTXVideoPipeline
+            from diffusers.utils import export_to_video, load_image
+            
+            self._logger.info(f"Loading LTX-Video: {self.config.model_id}")
+            
+            self._pipeline = LTXVideoPipeline.from_pretrained(
+                self.config.model_id,
+                torch_dtype=torch.float16,
+            )
+            
+            if self.config.enable_offload:
+                self._pipeline.enable_model_cpu_offload()
+            
+            self._pipeline_utils = {"load_image": load_image, "export_to_video": export_to_video}
+            self._logger.info("LTX-Video loaded successfully")
+            return True
+            
+        except Exception as e:
+            self._logger.exception(f"LTX-Video load failed: {e}")
+            return False
+    
+    def _load_cogvideo(self) -> bool:
+        """Load CogVideo via Diffusers."""
+        try:
+            from diffusers import CogVideoPipeline
+            from diffusers.utils import export_to_video, load_image
+            
+            self._logger.info(f"Loading CogVideo: {self.config.model_id}")
+            
+            self._pipeline = CogVideoPipeline.from_pretrained(
+                self.config.model_id,
+                torch_dtype=torch.bfloat16,
+            )
+            
+            if self.config.enable_offload:
+                self._pipeline.enable_model_cpu_offload()
+            
+            self._pipeline_utils = {"load_image": load_image, "export_to_video": export_to_video}
+            self._logger.info("CogVideo loaded successfully")
+            return True
+            
+        except Exception as e:
+            self._logger.exception(f"CogVideo load failed: {e}")
+            return False
+    
+    def _load_svd(self) -> bool:
+        """Load SVD via Diffusers."""
+        try:
+            from diffusers import StableVideoDiffusionPipeline
+            from diffusers.utils import export_to_video, load_image
+            
+            self._logger.info(f"Loading SVD: {self.config.model_id}")
+            
+            self._pipeline = StableVideoDiffusionPipeline.from_pretrained(
+                self.config.model_id,
+                torch_dtype=torch.bfloat16,
+            )
+            
+            if self.config.enable_offload:
+                self._pipeline.enable_model_cpu_offload()
+            
+            self._pipeline_utils = {"load_image": load_image, "export_to_video": export_to_video}
+            self._logger.info("SVD loaded successfully")
+            return True
+            
+        except Exception as e:
+            self._logger.exception(f"SVD load failed: {e}")
+            return False
+    
+    def _load_zeroscope(self) -> bool:
+        """Load ZeroScope via Diffusers."""
+        try:
+            from diffusers import DiffusionPipeline
+            from diffusers.utils import export_to_video, load_image
+            
+            self._logger.info(f"Loading ZeroScope: {self.config.model_id}")
+            
+            self._pipeline = DiffusionPipeline.from_pretrained(
+                self.config.model_id,
+                torch_dtype=torch.float16,
+            )
+            
+            if self.config.enable_offload:
+                self._pipeline.enable_model_cpu_offload()
+            
+            self._pipeline_utils = {"load_image": load_image, "export_to_video": export_to_video}
+            self._logger.info("ZeroScope loaded successfully")
+            return True
+            
+        except Exception as e:
+            self._logger.exception(f"ZeroScope load failed: {e}")
+            return False
+    
     def _load_legacy(self) -> bool:
         """Load legacy pipeline."""
         try:
@@ -236,7 +401,6 @@ class VideoModel:
                 sys.path.insert(0, str(project_root))
             
             from src.picture_aliver.main import Pipeline, PipelineConfig
-            from src.picture_aliver.config import DebugConfig
             
             # Create config
             config = PipelineConfig(
@@ -316,8 +480,20 @@ class VideoModel:
                     num_frames, guidance_scale, num_inference_steps,
                     seed, output_path
                 )
+            elif self.config.model_type == ModelType.WAN22:
+                result = self._generate_wan21(
+                    image, prompt, negative_prompt,
+                    num_frames, guidance_scale, num_inference_steps,
+                    seed, output_path
+                )
             elif self.config.model_type == ModelType.LIGHTX2V:
                 result = self._generate_lightx2v(
+                    image, prompt, negative_prompt,
+                    num_frames, guidance_scale, num_inference_steps,
+                    seed, output_path
+                )
+            elif self.config.model_type in (ModelType.HUNYUAN, ModelType.LTX, ModelType.COGVIDEO, ModelType.SVD, ModelType.ZEROSCOPE):
+                result = self._generate_diffusers(
                     image, prompt, negative_prompt,
                     num_frames, guidance_scale, num_inference_steps,
                     seed, output_path
@@ -325,7 +501,7 @@ class VideoModel:
             elif self.config.model_type == ModelType.LEGACY:
                 result = self._generate_legacy(
                     image, prompt,
-                    num_frames / 16,  # approximate duration
+                    num_frames / 16,
                     output_path
                 )
             else:
@@ -437,6 +613,50 @@ class VideoModel:
             status=GenerationStatus.COMPLETED,
         )
     
+    def _generate_diffusers(
+        self,
+        image: Union[str, Path, Image.Image],
+        prompt: str,
+        negative_prompt: str,
+        num_frames: int,
+        guidance_scale: float,
+        num_inference_steps: int,
+        seed: int,
+        output_path: str,
+    ) -> GenerationResult:
+        """Generate using Diffusers pipeline (generic for Hunyuan, LTX, CogVideo, SVD, ZeroScope)."""
+        from diffusers.utils import load_image, export_to_video
+        
+        if isinstance(image, (str, Path)):
+            image = load_image(str(image))
+        
+        aspect_ratio = image.height / image.width
+        max_area = self.config.height * self.config.width
+        mod_value = 8
+        
+        height = int(np.sqrt(max_area * aspect_ratio) // mod_value * mod_value)
+        width = int(np.sqrt(max_area / aspect_ratio) // mod_value * mod_value)
+        image = image.resize((width, height))
+        
+        output = self._pipeline(
+            image=image,
+            prompt=prompt,
+            negative_prompt=negative_prompt,
+            height=height,
+            width=width,
+            num_frames=num_frames,
+            guidance_scale=guidance_scale,
+            num_inference_steps=num_inference_steps,
+        ).frames[0]
+        
+        export_to_video(output, output_path, fps=self.config.fps)
+        
+        return GenerationResult(
+            success=True,
+            video_path=output_path,
+            status=GenerationStatus.COMPLETED,
+        )
+    
     def _generate_legacy(
         self,
         image: Union[str, Path],
@@ -446,7 +666,6 @@ class VideoModel:
     ) -> GenerationResult:
         """Generate using legacy pipeline."""
         from src.picture_aliver.main import Pipeline, PipelineConfig
-        from src.picture_aliver.config import DebugConfig
         
         config = PipelineConfig(
             duration_seconds=duration,

@@ -107,12 +107,54 @@ class ModelManager:
         except ImportError:
             available["wan21"] = False
         
+        # Check Wan 2.2
+        try:
+            from diffusers import WanImageToVideoPipeline
+            available["wan22"] = True
+        except ImportError:
+            available["wan22"] = False
+        
         # Check LightX2V
         try:
             from lightx2v import LightX2VPipeline
             available["lightx2v"] = True
         except ImportError:
             available["lightx2v"] = False
+        
+        # Check HunyuanVideo
+        try:
+            from diffusers import HunyuanVideoPipeline
+            available["hunyuan"] = True
+        except ImportError:
+            available["hunyuan"] = False
+        
+        # Check LTX-Video
+        try:
+            from diffusers import LTXVideoPipeline
+            available["ltx"] = True
+        except ImportError:
+            available["ltx"] = False
+        
+        # Check CogVideo (via diffusers)
+        try:
+            from diffusers import CogVideoPipeline
+            available["cogvideo"] = True
+        except ImportError:
+            available["cogvideo"] = False
+        
+        # Check SVD (Stable Video Diffusion)
+        try:
+            from diffusers import StableVideoDiffusionPipeline
+            available["svd"] = True
+        except ImportError:
+            available["svd"] = False
+        
+        # Check ZeroScope
+        try:
+            from diffusers import DiffusionPipeline
+            available["zeroscope"] = True
+        except ImportError:
+            available["zeroscope"] = False
         
         # Check legacy
         try:
