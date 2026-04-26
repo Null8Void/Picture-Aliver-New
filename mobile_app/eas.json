@@ -6,8 +6,10 @@
     "production": {
       "android": {
         "buildType": "apk"
-      },
-      "prebuildCommand": "npm install"
+      }
     }
+  },
+  "hooks": {
+    "postUpload": "echo 'Upload complete'"
   }
 }
