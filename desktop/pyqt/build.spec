@@ -31,30 +31,36 @@ if src_dir.exists():
 
 # Import PyInstaller utilities for collecting binaries
 from PyInstaller.utils.hooks import collect_all, collect_submodules, collect_data_files
+import os
+
+# For PyTorch on Windows, we need to include the DLLs from torch\lib folder
+torch_lib_path = os.path.join(os.sys.prefix, "torch", "lib")
+torch_dlls = []
+if os.path.exists(torch_lib_path):
+    for f in os.listdir(torch_lib_path):
+        if f.endswith(".dll"):
+            torch_dlls.append((os.path.join(torch_lib_path, f), "torch/lib"))
 
 # Collect all torch and torchvision data including DLLs
 torch_all = collect_all('torch')
 torchvision_all = collect_all('torchvision')
 
-# collect_all returns (datas, binaries, zipfiles, remote_ui) - we need both datas AND binaries
+# collect_all returns (datas, binaries, zipfiles, remote_ui) - need both
 torch_datas = torch_all[0] if torch_all else []
 torch_binaries = torch_all[1] if len(torch_all) > 1 else []
 torchvision_datas = torchvision_all[0] if torchvision_all else []
 torchvision_binaries = torchvision_all[1] if len(torchvision_all) > 1 else []
 
-# Collect PyTorch extensions binaries (includes CUDA DLLs)
-try:
-    torch_c_datas = collect_data_files('torch._C')
-except:
-    torch_c_datas = []
+# Add torch DLLs explicitly
+all_binaries = list(torch_binaries) + list(torchvision_binaries) + torch_dlls
 
 # Collect numpy and other critical binaries
 numpy_all = collect_all('numpy')
 numpy_datas = numpy_all[0] if numpy_all else []
 numpy_binaries = numpy_all[1] if len(numpy_all) > 1 else []
 
-# Combine all datas AND binaries - IMPORTANT for PyTorch DLLs
-all_datas = list(torch_datas) + list(torchvision_datas) + list(torch_c_datas) + list(numpy_datas) + [
+# Collect all data files
+all_datas = list(torch_datas) + list(torchvision_datas) + list(numpy_datas) + [
     (str(PROJECT_ROOT / "configs"), "configs"),
     (str(PROJECT_ROOT / "src/picture_aliver"), "src/picture_aliver"),
     (str(PROJECT_ROOT / "src/utils"), "src/utils"),
@@ -62,7 +68,13 @@ all_datas = list(torch_datas) + list(torchvision_datas) + list(torch_c_datas) + 
     (str(PROJECT_ROOT / "src/modules"), "src/modules"),
 ]
 
-all_binaries = list(torch_binaries) + list(torchvision_binaries) + list(numpy_binaries)
+# Collect numpy and other critical binaries
+numpy_all = collect_all('numpy')
+numpy_datas = numpy_all[0] if numpy_all else []
+numpy_binaries = numpy_all[1] if len(numpy_all) > 1 else []
+
+# Final binaries - include torch DLLs explicitly 
+all_binaries = all_binaries + list(numpy_binaries)
 
 a = Analysis(
     [str(SCRIPT_PATH)],
