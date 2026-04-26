@@ -190,57 +190,49 @@ class GenerationWorker(QThread):
                 self.log_message.emit(f"[Worker] Legacy failed too: {e2}")
                 self.finished.emit(False, str(e2), "")
     
-    def _run_legacy(self):
-        """Run using legacy pipeline."""
-        from src.picture_aliver.main import (
-            Pipeline, PipelineConfig, DebugConfig
-        )
-            
-            # Create config
-            config = PipelineConfig(
-                duration_seconds=self.params.get('duration', 3.0),
-                fps=self.params.get('fps', 8),
-                width=self.params.get('width', 512),
-                height=self.params.get('height', 512),
-                guidance_scale=self.params.get('guidance_scale', 7.5),
-                motion_strength=self.params.get('motion_strength', 0.8),
-                motion_mode=self.params.get('motion_mode', 'auto'),
-                enable_quality_check=self.params.get('enable_quality_check', True),
-                enable_stabilization=True,
-                debug=DebugConfig(enabled=False),
-            )
-            
-            self.progress.emit("Loading models...", 15)
-            pipeline = Pipeline(config)
-            pipeline.initialize()
-            
-            self.progress.emit("Running image-to-video generation...", 30)
-            self.log_message.emit("[Worker] Pipeline initialized, starting generation...")
-            
-            # Generate output path
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            output_dir = Path("outputs")
-            output_dir.mkdir(exist_ok=True)
-            output_path = output_dir / f"video_{timestamp}.mp4"
-            
-            # Run pipeline
-            result = pipeline.run_pipeline(
-                image_path=self.image_path,
-                prompt=self.params.get('prompt', ''),
-                config=config,
-                output_path=output_path
-            )
-            
-            if result.success:
-                self.progress.emit("Complete!", 100)
-                self.log_message.emit(f"[Worker] Success! Video saved to {result.output_path}")
-                self.finished.emit(True, "Video generated successfully!", str(result.output_path))
-            else:
-                errors = "; ".join(result.errors) if result.errors else "Unknown error"
-                self.log_message.emit(f"[Worker] Failed: {errors}")
-                self.finished.emit(False, f"Generation failed: {errors}", "")
+def _run_legacy(self):
+    """Run using legacy pipeline."""
+    from src.picture_aliver.main import Pipeline, PipelineConfig, DebugConfig
+    config = PipelineConfig(
+        duration_seconds=self.params.get('duration', 3.0),
+        fps=self.params.get('fps', 8),
+        width=self.params.get('width', 512),
+        height=self.params.get('height', 512),
+        guidance_scale=self.params.get('guidance_scale', 7.5),
+        motion_strength=self.params.get('motion_strength', 0.8),
+        motion_mode=self.params.get('motion_mode', 'auto'),
+        enable_quality_check=self.params.get('enable_quality_check', True),
+        enable_stabilization=True,
+        debug=DebugConfig(enabled=False)
+    )
     
-    def stop(self):
+    self.progress.emit("Loading models...", 15)
+    pipeline = Pipeline(config)
+    pipeline.initialize()
+    
+    self.progress.emit("Running image-to-video generation...", 30)
+    self.log_message.emit("[Worker] Pipeline initialized, starting generation...")
+    
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    output_dir = Path("outputs")
+    output_dir.mkdir(exist_ok=True)
+    output_path = output_dir / f"video_{timestamp}.mp4"
+    
+    result = pipeline.run_pipeline(
+        image_path=self.image_path,
+        prompt=self.params.get('prompt', ''),
+        config=config,
+        output_path=output_path
+    )
+    
+    if result.success:
+        self.progress.emit("Complete!", 100)
+        self.log_message.emit("[Worker] Success! Video saved to " + str(result.output_path))
+        self.finished.emit(True, "Video generated successfully!", str(result.output_path))
+    else:
+        errors = "; ".join(result.errors) if result.errors else "Unknown error"
+        self.log_message.emit("[Worker] Failed: " + errors)
+        self.finished.emit(False, "Generation failed: " + errors, "")
         """Request worker to stop."""
         self._running = False
 
