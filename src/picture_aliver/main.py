@@ -873,7 +873,8 @@ class Pipeline:
         
         # Log GPU info and tier settings
         benchmark = self.gpu_optimizer.get_benchmark()
-        print(f"[GPU] Tier: {self.gpu_optimizer.config.tier.value}")
+        tier_val = self.gpu_optimizer.config.tier.value if hasattr(self.gpu_optimizer.config.tier, 'value') else self.gpu_optimizer.config.tier
+        print(f"[GPU] Tier: {tier_val}")
         print(f"[GPU] FP16: {self.gpu_optimizer.config.use_fp16}")
         print(f"[GPU] Max resolution: {benchmark.max_resolution}")
         
