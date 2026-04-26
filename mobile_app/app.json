@@ -6,11 +6,33 @@
     "orientation": "portrait",
     "icon": "assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "assets/splash.png.txt",
+      "resizeMode": "contain",
+      "backgroundColor": "#6366F1"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
+      "supportsTablet": true,
       "bundleIdentifier": "com.picturealiver.mobile"
     },
     "android": {
-      "package": "com.picturealiver.mobile"
+      "package": "com.picturealiver.mobile",
+      "adaptiveIcon": {
+        "foregroundImage": "assets/icon.png",
+        "backgroundColor": "#6366F1"
+      }
+    },
+    "web": {
+      "favicon": "assets/favicon.png"
+    },
+    "plugins": [],
+    "extra": {
+      "eas": {
+        "projectId": "56dc576c-04f0-4dfe-bf45-f0cb87e517db"
+      }
     }
   }
 }
