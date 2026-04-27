@@ -49,6 +49,7 @@ class ModelManager:
         primary: str = "wan21",
         fallback: str = "legacy",
         config_path: Optional[str] = None,
+        device: str = "cuda",
     ):
         """
         Initialize ModelManager.
@@ -57,10 +58,12 @@ class ModelManager:
             primary: Primary model type ("wan21", "lightx2v", "legacy")
             fallback: Fallback model type
             config_path: Optional path to config file
+            device: Device to use ("cuda" or "cpu")
         """
         self.primary = primary
         self.fallback = fallback
         self.config_path = config_path
+        self.device = device
         
         self._current_model = None
         self._model_order: List[str] = []
