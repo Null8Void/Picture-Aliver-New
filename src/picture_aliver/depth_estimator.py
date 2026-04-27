@@ -313,7 +313,7 @@ class SimpleDepthEstimator(nn.Module):
         )
         
         self.depth_conv = nn.Sequential(
-            nn.Conv2d(35, 64, 3, padding=1),
+            nn.Conv2d(38, 64, 3, padding=1),
             nn.ReLU(),
             nn.Conv2d(64, 32, 3, padding=1),
             nn.ReLU(),
