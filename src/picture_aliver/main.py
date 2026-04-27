@@ -882,7 +882,7 @@ class Pipeline:
         self.image_loader = ImageLoader(device=self.device)
         self.depth_estimator = DepthEstimator(device=self.device, model_type="zoedepth")
         self.segmentation = SegmentationModule(device=self.device)
-        self.motion_generator = MotionGenerator(device=self.device, depth_estimator=self.depth_estimator)
+        self.motion_generator = FurryMotionGenerator(device=self.device, depth_estimator=self.depth_estimator)
         self.video_generator = VideoGenerator(device=self.device, depth_estimator=self.depth_estimator)
         self.stabilizer = VideoStabilizer(device=self.device)
         self.text_to_image = TextToImageGenerator(device=self.device)
