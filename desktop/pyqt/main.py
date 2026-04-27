@@ -156,6 +156,7 @@ class GenerationWorker(QThread):
         """Run using unified model interface."""
         try:
             from src.picture_aliver.model_manager import ModelManager
+            from datetime import datetime
             
             self.progress.emit("Loading model...", 10)
             self.log_message.emit("[Worker] Loading model with fallback support...")
@@ -170,7 +171,13 @@ class GenerationWorker(QThread):
             self.progress.emit("Generating video...", 30)
             self.log_message.emit("[Worker] Starting video generation...")
             
-            # Generate
+            # Set output path
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_dir = Path("outputs")
+            output_dir.mkdir(exist_ok=True)
+            output_path = str(output_dir / f"video_{timestamp}.mp4")
+            
+            # Generate with output path
             result = manager.generate(
                 image=self.image_path,
                 prompt=self.params.get('prompt', ''),
@@ -179,6 +186,7 @@ class GenerationWorker(QThread):
                 fps=self.params.get('fps', 8),
                 width=self.params.get('width', 512),
                 height=self.params.get('height', 512),
+                output_path=output_path,
             )
             
             if result["success"]:
@@ -189,6 +197,12 @@ class GenerationWorker(QThread):
             else:
                 error = result.get("error", "Unknown error")
                 self.log_message.emit(f"[Worker] Failed: {error}")
+                # Show which models were tried
+                if "attempts" in result:
+                    for attempt in result["attempts"]:
+                        model_name = attempt.get("model_type", "unknown")
+                        model_error = attempt.get("error", "unknown")
+                        self.log_message.emit(f"  -> {model_name}: {model_error}")
                 self.finished.emit(False, f"Generation failed: {error}", "")
                 
         except ImportError as e:
