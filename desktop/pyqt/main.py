@@ -555,8 +555,8 @@ class MainWindow(QMainWindow):
         self.quality_check.setStyleSheet("font-weight: bold;")
         settings_layout.addWidget(self.quality_check)
         
-layout.addWidget(settings_group)
-
+        layout.addWidget(settings_group)
+        
         # Device selection (GPU/CPU)
         device_layout = QHBoxLayout()
         device_layout.addWidget(QLabel("⚡ Device:"))
