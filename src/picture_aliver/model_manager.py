@@ -152,10 +152,25 @@ class ModelManager:
         except ImportError:
             available["svd"] = False
         
-        # Check ZeroScope
+        # Check ZeroScope and all other diffusers models
         try:
             from diffusers import DiffusionPipeline
             available["zeroscope"] = True
+            available["svd_xt"] = True
+            available["i2vgen_xl"] = True
+            available["fluffyrock"] = True
+            available["fluffyrock_unbound"] = True
+            available["yiffymix"] = True
+            available["yiffymix_v2"] = True
+            available["dreamshaper"] = True
+            available["dreamshaper_xl"] = True
+            available["pawpunk"] = True
+            available["furryforge"] = True
+            available["pony_diffusion"] = True
+            available["animatediff"] = True
+            available["animatediff_sdxl"] = True
+            available["svd_open"] = True
+            available["zeroscope_open"] = True
         except ImportError:
             available["zeroscope"] = False
         

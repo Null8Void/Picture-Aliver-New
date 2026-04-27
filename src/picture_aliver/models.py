@@ -47,7 +47,22 @@ class ModelType(Enum):
     LTX = "ltx"
     COGVIDEO = "cogvideo"
     SVD = "svd"
+    SVD_XT = "svd_xt"
     ZEROSCOPE = "zeroscope"
+    I2VGEN_XL = "i2vgen_xl"
+    FLUFFYROCK = "fluffyrock"
+    FLUFFYROCK_UNBOUND = "fluffyrock_unbound"
+    YIFFYMIX = "yiffymix"
+    YIFFYMIX_V2 = "yiffymix_v2"
+    DREAMSHAPER = "dreamshaper"
+    DREAMSHAPER_XL = "dreamshaper_xl"
+    PAWPUNK = "pawpunk"
+    FURRYFORGE = "furryforge"
+    PonyDiffusion = "pony_diffusion"
+    ANIMATEDIFF = "animatediff"
+    ANIMATEDIFF_SDXL = "animatediff_sdxl"
+    SVD_OPEN = "svd_open"
+    ZEROSCOPE_OPEN = "zeroscope_open"
     LEGACY = "legacy"
 
 
@@ -492,7 +507,13 @@ class VideoModel:
                     num_frames, guidance_scale, num_inference_steps,
                     seed, output_path
                 )
-            elif self.config.model_type in (ModelType.HUNYUAN, ModelType.LTX, ModelType.COGVIDEO, ModelType.SVD, ModelType.ZEROSCOPE):
+            elif self.config.model_type in (ModelType.HUNYUAN, ModelType.LTX, ModelType.COGVIDEO, ModelType.SVD, ModelType.SVD_XT, ModelType.ZEROSCOPE, ModelType.I2VGEN_XL, ModelType.PAWPUNK, ModelType.ANIMATEDIFF, ModelType.ANIMATEDIFF_SDXL):
+                result = self._generate_diffusers(
+                    image, prompt, negative_prompt,
+                    num_frames, guidance_scale, num_inference_steps,
+                    seed, output_path
+                )
+            elif self.config.model_type in (ModelType.FLUFFYROCK, ModelType.FLUFFYROCK_UNBOUND, ModelType.YIFFYMIX, ModelType.YIFFYMIX_V2, ModelType.DREAMSHAPER, ModelType.DREAMSHAPER_XL, ModelType.FURRYFORGE, ModelType.PonyDiffusion, ModelType.SVD_OPEN, ModelType.ZEROSCOPE_OPEN):
                 result = self._generate_diffusers(
                     image, prompt, negative_prompt,
                     num_frames, guidance_scale, num_inference_steps,
