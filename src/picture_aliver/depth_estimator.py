@@ -8,6 +8,7 @@ Provides both relative and metric depth estimates.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Optional, Union, Tuple
 from dataclasses import dataclass
@@ -318,7 +319,7 @@ class ZoeDepthWrapper(nn.Module):
                 from transformers import AutoModel
                 self.model = AutoModel.from_pretrained(
                     "isl/zoe2",
-                    cache_dir="./models/huggingface"
+                    cache_dir=os.environ.get("HF_HUB_CACHE") or os.environ.get("HUGGINGFACE_HUB_CACHE") or str(Path(os.environ.get("HF_HOME", "./models/huggingface")) / "hub")
                 )
                 self.model.to(self.device)
                 self.model.eval()

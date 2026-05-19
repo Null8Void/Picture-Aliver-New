@@ -1,15 +1,19 @@
-[pytest]
-testpaths = tests
-python_files = test_*.py
-python_functions = test_*
-addopts = -v --tb=short
+[build-system]
+requires = ["setuptools>=64.0"]
+build-backend = "setuptools.build_meta"
 
-[flake8]
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+
+[tool.flake8]
 max-line-length = 100
-exclude = .git,__pycache__,build,dist
+exclude = [".git", "__pycache__", "build", "dist"]
 
-[mypy]
-python_version = 3.9
-warn_return_any = True
-warn_unused_configs = True
-ignore_missing_imports = True
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

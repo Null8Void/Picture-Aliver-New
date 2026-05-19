@@ -43,6 +43,7 @@ class ModelLoader:
         device: Optional[torch.device] = None,
         default_rating: ContentRating = ContentRating.SAFE,
         trust_remote_code: bool = True,
+        token: Optional[str] = None,
     ):
         self.cache_dir = Path(cache_dir) if cache_dir else self._get_default_cache_dir()
         self.cache_dir.mkdir(parents=True, exist_ok=True)
@@ -50,6 +51,9 @@ class ModelLoader:
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.default_rating = default_rating
         self.trust_remote_code = trust_remote_code
+        self._token = token or os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_HUB_TOKEN")
+        if self._token and "HF_TOKEN" not in os.environ:
+            os.environ["HF_TOKEN"] = self._token
         
         self._loaded_models: Dict[str, nn.Module] = {}
         self._model_configs: Dict[str, Dict[str, Any]] = {}
@@ -59,11 +63,15 @@ class ModelLoader:
     
     def _get_default_cache_dir(self) -> Path:
         """Get default model cache directory."""
+        if "HF_HUB_CACHE" in os.environ:
+            return Path(os.environ["HF_HUB_CACHE"])
+        if "HUGGINGFACE_HUB_CACHE" in os.environ:
+            return Path(os.environ["HUGGINGFACE_HUB_CACHE"])
         if "HF_HOME" in os.environ:
-            return Path(os.environ["HF_HOME"]) / "models"
+            return Path(os.environ["HF_HOME"]) / "hub"
         if "MODEL_CACHE" in os.environ:
             return Path(os.environ["MODEL_CACHE"])
-        return Path.home() / ".cache" / "picture_aliver" / "models"
+        return Path.home() / ".cache" / "huggingface" / "hub"
     
     def _get_available_vram_mb(self) -> int:
         """Get available VRAM in MB."""
@@ -159,7 +167,8 @@ class ModelLoader:
             )
             
             model = model.to(self.device)
-            model.eval()
+            if hasattr(model, "eval"):
+                model.eval()
             
             self._loaded_models[cache_key] = model
             self._model_configs[cache_key] = {
@@ -197,12 +206,18 @@ class ModelLoader:
         
         if model_info.category == ModelCategory.I2V:
             return self._load_i2v_model(repo_id, model_info, quantization, **kwargs)
+        elif model_info.category == ModelCategory.TEXT2VIDEO:
+            return self._load_text2video_model(repo_id, model_info, quantization, **kwargs)
+        elif model_info.category == ModelCategory.TEXT2IMAGE:
+            return self._load_text2image_model(repo_id, model_info, quantization, **kwargs)
         elif model_info.category == ModelCategory.DEPTH:
             return self._load_depth_model(repo_id, model_info, quantization, **kwargs)
         elif model_info.category == ModelCategory.SEGMENTATION:
             return self._load_segmentation_model(repo_id, model_info, quantization, **kwargs)
         elif model_info.category == ModelCategory.INTERPOLATION:
             return self._load_interpolation_model(repo_id, model_info, quantization, **kwargs)
+        elif model_info.category == ModelCategory.VIDEO_MOTION:
+            return self._load_video_motion_model(repo_id, model_info, quantization, **kwargs)
         else:
             raise ValueError(f"Unknown model category: {model_info.category}")
     
@@ -221,11 +236,13 @@ class ModelLoader:
             if "svd" in repo_id.lower() or "video-diffusion" in repo_id.lower():
                 return self._load_svd_model(repo_id, dtype, **kwargs)
             elif "animatediff" in repo_id.lower():
-                return self._load_animatediff_model(repo_id, dtype, **kwargs)
+                return self._load_animatediff_model(repo_id, dtype, base_model=model_info.base_model, **kwargs)
             elif "zeroscope" in repo_id.lower():
                 return self._load_zeroscope_model(repo_id, dtype, **kwargs)
             elif "i2vgen" in repo_id.lower():
                 return self._load_i2vgen_model(repo_id, dtype, **kwargs)
+            elif "wan" in repo_id.lower() or "wan2" in repo_id.lower():
+                return self._load_wan_model(repo_id, model_info, dtype, **kwargs)
             elif "opengif" in repo_id.lower() or "open-gif" in repo_id.lower():
                 return self._load_opengif_model(repo_id, dtype, **kwargs)
             else:
@@ -261,6 +278,7 @@ class ModelLoader:
         self,
         repo_id: str,
         dtype: torch.dtype,
+        base_model: Optional[str] = None,
         **kwargs
     ) -> nn.Module:
         """Load AnimateDiff model."""
@@ -278,7 +296,11 @@ class ModelLoader:
             except Exception:
                 motion_adapter = None
             
-            base_model = kwargs.pop("base_model", "stabilityai/stable-diffusion-xl-base-1.0")
+            if not base_model:
+                raise ValueError(
+                    f"Motion adapter '{repo_id}' requires a base_model, but none was specified "
+                    f"in the model registry and none is cached."
+                )
             pipeline = AnimateDiffPipeline.from_pretrained(
                 base_model,
                 motion_adapter=motion_adapter,
@@ -287,12 +309,20 @@ class ModelLoader:
                 trust_remote_code=self.trust_remote_code,
             )
         else:
-            pipeline = AnimateDiffPipeline.from_pretrained(
-                repo_id,
-                torch_dtype=dtype,
-                cache_dir=str(self.cache_dir),
-                trust_remote_code=self.trust_remote_code,
-            )
+            try:
+                pipeline = AnimateDiffPipeline.from_pretrained(
+                    repo_id,
+                    torch_dtype=dtype,
+                    cache_dir=str(self.cache_dir),
+                    trust_remote_code=self.trust_remote_code,
+                )
+            except Exception as e:
+                if "404" in str(e):
+                    raise ValueError(
+                        f"Model '{repo_id}' cache is incomplete or the repo is unavailable. "
+                        f"Try: huggingface-cli download {repo_id}"
+                    ) from e
+                raise
         
         if torch.cuda.is_available():
             pipeline.enable_model_cpu_offload()
@@ -338,6 +368,11 @@ class ModelLoader:
             trust_remote_code=self.trust_remote_code,
         )
         
+        # transformers 5.x merged CLIPTextTransformer into CLIPTextModel,
+        # removing the .text_model sub-attribute that diffusers expects
+        if hasattr(pipeline, "text_encoder") and not hasattr(pipeline.text_encoder, "text_model"):
+            pipeline.text_encoder.text_model = pipeline.text_encoder
+        
         if torch.cuda.is_available():
             pipeline.enable_model_cpu_offload()
         
@@ -380,6 +415,299 @@ class ModelLoader:
         
         return pipeline
     
+    def _load_wan_model(
+        self,
+        repo_id: str,
+        model_info: ModelInfo,
+        dtype: torch.dtype,
+        **kwargs
+    ) -> nn.Module:
+        """Load Wan2.2 I2V model."""
+        pipeline_type = model_info.pipeline_type or "wan_i2v"
+
+        if pipeline_type in ("wan_i2v", "wan_lightning_i2v"):
+            from diffusers import WanImageToVideoPipeline
+            pipe = WanImageToVideoPipeline.from_pretrained(
+                repo_id,
+                torch_dtype=dtype,
+                cache_dir=str(self.cache_dir),
+                trust_remote_code=self.trust_remote_code,
+            )
+        elif pipeline_type == "wan_v2v":
+            from diffusers import WanVideoToVideoPipeline
+            pipe = WanVideoToVideoPipeline.from_pretrained(
+                repo_id,
+                torch_dtype=dtype,
+                cache_dir=str(self.cache_dir),
+                trust_remote_code=self.trust_remote_code,
+            )
+        else:
+            from diffusers import WanImageToVideoPipeline
+            pipe = WanImageToVideoPipeline.from_pretrained(
+                repo_id,
+                torch_dtype=dtype,
+                cache_dir=str(self.cache_dir),
+                trust_remote_code=self.trust_remote_code,
+            )
+
+        if torch.cuda.is_available():
+            pipe.enable_model_cpu_offload()
+            pipe.enable_vae_slicing()
+
+        return pipe
+
+    def _load_text2video_model(
+        self,
+        repo_id: str,
+        model_info: ModelInfo,
+        quantization: Optional[str] = None,
+        **kwargs
+    ) -> nn.Module:
+        """Load text-to-video model (Wan2.2 T2V, etc.)."""
+        dtype = torch.float16 if quantization == "fp16" else torch.float32
+        pipeline_type = model_info.pipeline_type or "wan_t2v"
+
+        if pipeline_type.startswith("wan"):
+            from diffusers import WanPipeline
+            pipe = WanPipeline.from_pretrained(
+                repo_id,
+                torch_dtype=dtype,
+                cache_dir=str(self.cache_dir),
+                trust_remote_code=self.trust_remote_code,
+            )
+
+            if torch.cuda.is_available():
+                pipe.enable_model_cpu_offload()
+                pipe.enable_vae_slicing()
+
+            return pipe
+
+        from diffusers import DiffusionPipeline
+        pipe = DiffusionPipeline.from_pretrained(
+            repo_id,
+            torch_dtype=dtype,
+            cache_dir=str(self.cache_dir),
+            trust_remote_code=self.trust_remote_code,
+        )
+        return pipe
+
+    def _load_text2image_model(
+        self,
+        repo_id: str,
+        model_info: ModelInfo,
+        quantization: Optional[str] = None,
+        **kwargs
+    ) -> nn.Module:
+        """Load text-to-image model (SDXL, SD 1.5, or Flux)."""
+        
+        dtype = torch.float16 if quantization == "fp16" else torch.float32
+        pipeline_type = model_info.pipeline_type or "sdxl"
+        
+        if pipeline_type == "flux":
+            return self._load_flux_model(repo_id, model_info, dtype, **kwargs)
+        elif pipeline_type == "sdxl":
+            return self._load_sdxl_model(repo_id, model_info, dtype, **kwargs)
+        else:
+            return self._load_sd15_model(repo_id, model_info, dtype, **kwargs)
+    
+    def _load_sdxl_model(
+        self,
+        repo_id: str,
+        model_info: ModelInfo,
+        dtype: torch.dtype,
+        **kwargs
+    ) -> nn.Module:
+        """Load SDXL text-to-image pipeline."""
+        from diffusers import StableDiffusionXLPipeline
+        
+        pipeline = StableDiffusionXLPipeline.from_pretrained(
+            repo_id,
+            torch_dtype=dtype,
+            cache_dir=str(self.cache_dir),
+            trust_remote_code=self.trust_remote_code,
+            safety_checker=None,
+            requires_safety_checker=False,
+            variant=kwargs.get("variant", None),
+        )
+        
+        if torch.cuda.is_available():
+            pipeline.enable_model_cpu_offload()
+            pipeline.enable_vae_slicing()
+            try:
+                pipeline.enable_xformers_memory_efficient_attention()
+            except Exception:
+                pass
+        
+        return pipeline
+    
+    def _load_sd15_model(
+        self,
+        repo_id: str,
+        model_info: ModelInfo,
+        dtype: torch.dtype,
+        **kwargs
+    ) -> nn.Module:
+        """Load SD 1.5 text-to-image pipeline."""
+        from diffusers import StableDiffusionPipeline
+        
+        pipeline = StableDiffusionPipeline.from_pretrained(
+            repo_id,
+            torch_dtype=dtype,
+            cache_dir=str(self.cache_dir),
+            trust_remote_code=self.trust_remote_code,
+            safety_checker=None,
+            requires_safety_checker=False,
+        )
+        
+        if torch.cuda.is_available():
+            pipeline.enable_attention_slicing()
+        
+        return pipeline
+    
+    def _load_flux_model(
+        self,
+        repo_id: str,
+        model_info: ModelInfo,
+        dtype: torch.dtype,
+        **kwargs
+    ) -> nn.Module:
+        """Load Flux text-to-image pipeline."""
+        try:
+            from diffusers import FluxPipeline
+            
+            pipeline = FluxPipeline.from_pretrained(
+                repo_id,
+                torch_dtype=dtype,
+                cache_dir=str(self.cache_dir),
+                trust_remote_code=self.trust_remote_code,
+                safety_checker=None,
+                requires_safety_checker=False,
+            )
+            
+            if torch.cuda.is_available():
+                pipeline.enable_model_cpu_offload()
+            
+            # Load LoRA if specified
+            if model_info.is_lora and model_info.lora_id:
+                try:
+                    pipeline.load_lora_weights(model_info.lora_id)
+                    print(f"  [Flux] Loaded LoRA: {model_info.lora_id}")
+                except Exception as e:
+                    warnings.warn(f"Could not load LoRA {model_info.lora_id}: {e}")
+            
+            return pipeline
+            
+        except ImportError:
+            warnings.warn("FluxPipeline not available in diffusers version")
+            raise
+    
+    def _load_video_motion_model(
+        self,
+        repo_id: str,
+        model_info: ModelInfo,
+        quantization: Optional[str] = None,
+        **kwargs
+    ) -> nn.Module:
+        """Load video motion model (Polaris or Lynx One)."""
+        
+        pipeline_type = model_info.pipeline_type or "polaris"
+        
+        if pipeline_type == "polaris":
+            return self._load_polaris_model(model_info, **kwargs)
+        elif pipeline_type == "lynx":
+            return self._load_lynx_one_model(model_info, **kwargs)
+        else:
+            raise ValueError(f"Unknown video motion pipeline: {pipeline_type}")
+    
+    def _load_polaris_model(
+        self,
+        model_info: ModelInfo,
+        **kwargs
+    ) -> nn.Module:
+        """Load Polaris loop-based motion pipeline."""
+        from .polaris_pipeline import PolarisPipeline
+        
+        base_model = model_info.base_model or "stabilityai/stable-diffusion-xl-base-1.0"
+        
+        pipeline = PolarisPipeline(
+            base_model=base_model,
+            device=self.device,
+            cache_dir=self.cache_dir,
+        )
+        
+        return pipeline
+    
+    def _load_lynx_one_model(
+        self,
+        model_info: ModelInfo,
+        **kwargs
+    ) -> nn.Module:
+        """Load Lynx One start/end frame animation pipeline."""
+        from .lynx_pipeline import LynxOnePipeline
+        
+        base_model = model_info.base_model or "stabilityai/stable-diffusion-xl-base-1.0"
+        
+        pipeline = LynxOnePipeline(
+            base_model=base_model,
+            device=self.device,
+            cache_dir=self.cache_dir,
+        )
+        
+        return pipeline
+    
+    def _create_fallback_text2image_model(self, model_info: ModelInfo) -> nn.Module:
+        """Create a simple fallback text-to-image model."""
+        device = self.device
+        
+        class FallbackT2IModel(nn.Module):
+            """Simple fallback text-to-image generator."""
+            
+            def __init__(self, device, resolution=(512, 512)):
+                super().__init__()
+                self.device = device
+                self.resolution = resolution
+                self.noise_schedule = torch.linspace(1.0, 0.1, 25)
+                
+                self.unet = nn.Sequential(
+                    nn.Conv2d(4, 64, 3, padding=1),
+                    nn.ReLU(inplace=True),
+                    nn.Conv2d(64, 128, 3, padding=1),
+                    nn.ReLU(inplace=True),
+                    nn.Conv2d(128, 64, 3, padding=1),
+                    nn.ReLU(inplace=True),
+                    nn.Conv2d(64, 4, 3, padding=1),
+                )
+                
+                self.decode = nn.Sequential(
+                    nn.ConvTranspose2d(4, 32, 4, stride=2, padding=1),
+                    nn.ReLU(inplace=True),
+                    nn.ConvTranspose2d(32, 64, 4, stride=2, padding=1),
+                    nn.ReLU(inplace=True),
+                    nn.Conv2d(64, 3, 3, padding=1),
+                    nn.Sigmoid(),
+                )
+            
+            def forward(self, prompt, **gen_kwargs):
+                h, w = self.resolution
+                latent = torch.randn(1, 4, h // 4, w // 4, device=self.device)
+                
+                for t in self.noise_schedule:
+                    noise = torch.randn_like(latent) * t * 0.1
+                    pred = self.unet(latent)
+                    latent = latent - pred * 0.01 + noise
+                
+                image = self.decode(latent)
+                return image
+            
+            def to(self, device):
+                self.device = device
+                return super().to(device)
+        
+        return FallbackT2IModel(
+            device=device,
+            resolution=model_info.resolution or (1024, 1024)
+        )
+    
     def _create_fallback_i2v_model(self, model_info: ModelInfo) -> nn.Module:
         """Create a simple fallback I2V model."""
         
@@ -414,7 +742,10 @@ class ModelLoader:
                     nn.Sigmoid(),
                 )
             
-            def forward(self, x, num_frames=None):
+            def forward(self, x=None, num_frames=None, **kwargs):
+                if x is None:
+                    B, C, H, W = 1, 3, *self.resolution
+                    x = torch.randn(B, C, H, W)
                 if num_frames is None:
                     num_frames = self.max_frames
                 

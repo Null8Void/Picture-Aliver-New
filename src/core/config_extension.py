@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from typing import Optional, Dict, Any, List
 from enum import Enum
 
-from ..core.model_registry import ContentRating, ModelCategory
+from .model_registry import ContentRating, ModelCategory
 
 
 class GenerationMode(Enum):

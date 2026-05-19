@@ -24,7 +24,8 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QTextEdit, QLineEdit, QSlider, QProgressBar,
     QFileDialog, QMessageBox, QComboBox, QGroupBox, QCheckBox,
-    QStatusBar, QToolBar, QSplitter, QFrame, QScrollArea, QProgressDialog
+    QStatusBar, QToolBar, QSplitter, QFrame, QScrollArea, QProgressDialog,
+    QListWidget, QListWidgetItem, QMenu
 )
 from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QThread, pyqtSlot
 from PyQt5.QtGui import QPixmap, QIcon, QFont, QPalette, QColor
@@ -195,6 +196,7 @@ class MainWindow(QMainWindow):
         self.worker: Optional[GenerationWorker] = None
         self.local_backend = LocalBackend()
         self.selected_image_path: Optional[str] = None
+        self.results_history: list[str] = []
         
         self.init_ui()
         self.setup_signals()
@@ -391,6 +393,17 @@ class MainWindow(QMainWindow):
         
         layout.addWidget(preview_group)
         
+        # Generation history
+        history_group = QGroupBox("Generation History")
+        history_layout = QVBoxLayout(history_group)
+        self.results_list = QListWidget()
+        self.results_list.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.results_list.customContextMenuRequested.connect(self.show_result_context_menu)
+        self.results_list.itemDoubleClicked.connect(self.play_result_from_history)
+        self.results_list.setMinimumHeight(100)
+        history_layout.addWidget(self.results_list)
+        layout.addWidget(history_group)
+        
         # Log output
         log_group = QGroupBox("Processing Log")
         log_layout = QVBoxLayout(log_group)
@@ -528,6 +541,7 @@ class MainWindow(QMainWindow):
             self.last_video_path = video_path
             self.play_btn.setEnabled(True)
             self.video_label.setText(f"Video ready:\n{video_path}")
+            self.add_result_to_gallery(video_path)
             QMessageBox.information(self, "Success", message)
         else:
             self.status_bar.showMessage("Generation failed!")
@@ -555,6 +569,79 @@ class MainWindow(QMainWindow):
                 shutil.copy(self.last_video_path, save_path)
                 self.log(f"Saved to: {save_path}")
     
+    def add_result_to_gallery(self, video_path: str):
+        """Add a generated video to the history gallery."""
+        path_obj = Path(video_path)
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        display_text = f"{path_obj.name}  ({timestamp})"
+        item = QListWidgetItem(
+            self.style().standardIcon(self.style().SP_MediaPlay),
+            display_text
+        )
+        item.setData(Qt.UserRole, video_path)
+        self.results_list.addItem(item)
+        self.results_list.scrollToBottom()
+        self.results_history.append(video_path)
+
+    def show_result_context_menu(self, pos):
+        """Show right-click context menu for a history item."""
+        item = self.results_list.itemAt(pos)
+        if not item:
+            return
+        menu = QMenu()
+        play_act = menu.addAction(
+            self.style().standardIcon(self.style().SP_MediaPlay), "Play"
+        )
+        save_act = menu.addAction(
+            self.style().standardIcon(self.style().SP_DialogSaveButton), "Save As..."
+        )
+        menu.addSeparator()
+        del_act = menu.addAction("Delete from List")
+
+        action = menu.exec_(self.results_list.mapToGlobal(pos))
+        if action == play_act:
+            self.play_result_from_history(item)
+        elif action == save_act:
+            self.save_result_from_history(item)
+        elif action == del_act:
+            self.delete_result_from_list(item)
+
+    def play_result_from_history(self, item):
+        """Play a video from the history gallery."""
+        if isinstance(item, QListWidgetItem):
+            video_path = item.data(Qt.UserRole)
+        else:
+            video_path = item
+        if video_path and os.path.exists(video_path):
+            import subprocess
+            import platform
+            if platform.system() == 'Windows':
+                os.startfile(video_path)
+            else:
+                subprocess.run(['xdg-open', video_path])
+
+    def save_result_from_history(self, item):
+        """Save a history video to a custom location."""
+        video_path = item.data(Qt.UserRole)
+        if not video_path or not os.path.exists(video_path):
+            return
+        save_path, _ = QFileDialog.getSaveFileName(
+            self, "Save Video", os.path.basename(video_path), "MP4 (*.mp4)"
+        )
+        if save_path:
+            import shutil
+            shutil.copy(video_path, save_path)
+            self.log(f"Saved to: {save_path}")
+
+    def delete_result_from_list(self, item):
+        """Remove a video from the history list (does not delete the file)."""
+        row = self.results_list.row(item)
+        self.results_list.takeItem(row)
+        video_path = item.data(Qt.UserRole)
+        if video_path in self.results_history:
+            self.results_history.remove(video_path)
+        self.log(f"Removed from history: {video_path}")
+
     def show_settings(self):
         """Show settings dialog."""
         QMessageBox.information(self, "Settings", "Settings dialog coming soon")

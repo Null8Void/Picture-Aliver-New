@@ -162,6 +162,54 @@ models:
     - "pose"
 
 # =============================================================================
+# FROSTING MODELS CONFIGURATION
+# =============================================================================
+frosting:
+  # Default image model for /dream generation
+  default_image_model: "DreamShaper XL"
+  
+  # Default motion model for video generation
+  default_motion_model: "Lynx One"
+  
+  # Model category to use for free tier (Lite variants)
+  free_tier_model: "Lite DreamShaper XL"
+  
+  # Available image models by category
+  image_models:
+    premium:
+      - "Solarmix XL"
+      - "Supernova XL"
+      - "Solarmix XL Premium"
+    experimental:
+      - "Sirius"
+      - "Alpha Centauri Flux"
+    photoreal:
+      - "DreamShaper XL"
+      - "Lite DreamShaper XL"
+      - "DreamShaper XL Turbo"
+    anime:
+      - "BluePencil XL"
+      - "Lite BluePencil XL"
+      - "BluePencil XL LCM"
+      - "Anything"
+      - "Kotosmix"
+    furry:
+      - "Compass Mix XL"
+      - "Lite Compass Mix XL"
+      - "Indigomix V"
+      - "YiffyMix"
+      - "YiffyMix XL"
+      - "YiffyMix v5"
+      - "YiffyMix v6"
+      - "Fluffyrock"
+      - "Fluffyrock-Unbound"
+  
+  # Motion models
+  motion_models:
+    loop: "Polaris"
+    animation: "Lynx One"
+
+# =============================================================================
 # CONTENT TYPE PREFERENCES
 # =============================================================================
 content:

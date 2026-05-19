@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+import os
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
@@ -38,6 +40,7 @@ class VideoGenerator:
     ):
         self.config = config or GenerationConfig()
         self.device = device or torch.device("cpu")
+        self._cache_dir = self._resolve_cache_dir()
         
         self.pipeline = None
         self.motion_adapter = None
@@ -53,6 +56,20 @@ class VideoGenerator:
         self.depth_estimator = None
         self.segmentor = None
     
+    @staticmethod
+    def _resolve_cache_dir() -> str:
+        if "HF_HUB_CACHE" in os.environ:
+            return os.environ["HF_HUB_CACHE"]
+        if "HUGGINGFACE_HUB_CACHE" in os.environ:
+            return os.environ["HUGGINGFACE_HUB_CACHE"]
+        if "HF_HOME" in os.environ:
+            return str(Path(os.environ["HF_HOME"]) / "hub")
+        return "models/generation"
+
+    @property
+    def _cache(self) -> str:
+        return self._cache_dir
+
     def initialize(self) -> None:
         """Initialize the video generation model."""
         if self._initialized:
@@ -87,7 +104,7 @@ class VideoGenerator:
                 self.motion_adapter = MotionAdapter.from_pretrained(
                     adapter_path,
                     torch_dtype=torch.float16 if self.device.type == "cuda" else torch.float32,
-                    cache_dir="models/generation"
+                    cache_dir=self._cache
                 )
             except Exception:
                 self.motion_adapter = None
@@ -97,13 +114,13 @@ class VideoGenerator:
                     "stabilityai/stable-diffusion-xl-base-1.0",
                     motion_adapter=self.motion_adapter,
                     torch_dtype=torch.float16 if self.device.type == "cuda" else torch.float32,
-                    cache_dir="models/generation"
+                    cache_dir=self._cache
                 )
             else:
                 self.pipeline = AnimateDiffPipeline.from_pretrained(
                     "stabilityai/stable-diffusion-xl-base-1.0",
                     torch_dtype=torch.float16 if self.device.type == "cuda" else torch.float32,
-                    cache_dir="models/generation"
+                    cache_dir=self._cache
                 )
             
             if self.device.type == "cuda":
@@ -129,7 +146,7 @@ class VideoGenerator:
             self.pipeline = DiffusionPipeline.from_pretrained(
                 "damo-vilab/text-to-video-ms",
                 torch_dtype=torch.float16 if self.device.type == "cuda" else torch.float32,
-                cache_dir="models/generation"
+                cache_dir=self._cache
             )
             
             self.pipeline = self.pipeline.to(self.device)

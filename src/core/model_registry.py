@@ -22,10 +22,13 @@ class ContentRating(Enum):
 class ModelCategory(Enum):
     """Categories of models in the pipeline."""
     I2V = "i2v"                    # Image-to-Video generation
+    TEXT2VIDEO = "text2video"      # Text-to-Video generation (Wan2.2, etc.)
     DEPTH = "depth"                # Depth estimation
     SEGMENTATION = "segmentation"  # Semantic/instance segmentation
     MOTION = "motion"              # Motion conditioning
     INTERPOLATION = "interpolation" # Frame interpolation
+    TEXT2IMAGE = "text2image"      # Text-to-Image SD/SDXL models
+    VIDEO_MOTION = "video_motion"  # Video motion/animation pipelines (Polaris, Lynx One)
 
 
 @dataclass
@@ -39,12 +42,16 @@ class ModelInfo:
     vram_mb: int
     resolution: Optional[tuple[int, int]] = None
     max_frames: Optional[int] = None
+    fps: Optional[int] = None         # Frames per second (for video models)
     base_model: Optional[str] = None  # For motion adapters
+    pipeline_type: Optional[str] = None  # "sdxl", "sd15", "flux", "animatediff", "polaris", "lynx"
+    lora_id: Optional[str] = None     # LoRA adapter repo ID (for LoRA-based models)
     variants: Dict[str, str] = field(default_factory=dict)
     requires_base: bool = False
     quantization: Optional[str] = None  # fp16, int8, int4
     is_torchscript: bool = False
     is_onnx: bool = False
+    is_lora: bool = False             # Whether this is a LoRA adapter
     license: Optional[str] = None
     
     @property
@@ -124,14 +131,16 @@ class ModelRegistry:
         ))
         
         self.register(ModelInfo(
-            name="OpenGIF-Unrestricted",
-            repo_id=" caut的英雄/openGIF",
-            model_path="opengif",
+            name="I2V-Adapter-SDXL",
+            repo_id="guoyww/animatediff-motion-adapter-sdxl-beta",
+            model_path="i2v-adapter-sdxl",
             category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=10000,
-            resolution=(512, 512),
-            max_frames=32,
+            rating=ContentRating.MATURE,
+            vram_mb=2000,
+            resolution=(1024, 1024),
+            max_frames=16,
+            requires_base=True,
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
         ))
         
         self.register(ModelInfo(
@@ -179,7 +188,7 @@ class ModelRegistry:
         
         self.register(ModelInfo(
             name="AnimateDiff-SD15",
-            repo_id="guoyww/animatediff-motion-adapter",
+            repo_id="guoyww/animatediff-motion-adapter-v1-5",
             model_path="animatediff-sd15",
             category=ModelCategory.I2V,
             rating=ContentRating.SAFE,
@@ -386,7 +395,7 @@ class ModelRegistry:
         
         self.register(ModelInfo(
             name="AnimateDiff-Mature-Adapter",
-            repo_id="guoyww/animatediff-motion-adapter",
+            repo_id="guoyww/animatediff-motion-adapter-v1-5",
             model_path="motion-adapter-mature",
             category=ModelCategory.MOTION,
             rating=ContentRating.MATURE,
@@ -453,14 +462,16 @@ class ModelRegistry:
         ))
         
         self.register(ModelInfo(
-            name="MotionBoost-I2V",
-            repo_id="modelscope/motionboost",
-            model_path="motionboost",
+            name="AnimMotion-Adapters",
+            repo_id="guoyww/animatediff-motion-adapter-v1-5",
+            model_path="animotion-adapters",
             category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=12000,
+            rating=ContentRating.MATURE,
+            vram_mb=1000,
             resolution=(512, 512),
-            max_frames=32,
+            max_frames=16,
+            requires_base=True,
+            base_model="runwayml/stable-diffusion-v1-5",
         ))
         
         # =============================================
@@ -469,8 +480,20 @@ class ModelRegistry:
         
         self.register(ModelInfo(
             name="Yiffymix",
-            repo_id="stablediffusion/yiffymix",
+            repo_id="Yntec/YiffyMix",
             model_path="yiffymix",
+            category=ModelCategory.I2V,
+            rating=ContentRating.NSFW,
+            vram_mb=4000,
+            resolution=(512, 768),
+            max_frames=16,
+            base_model="runwayml/stable-diffusion-v1-5",
+        ))
+        
+        self.register(ModelInfo(
+            name="Yiffymix XL",
+            repo_id="IDK-ab0ut/Yiffymix_v51-XL",
+            model_path="yiffymix-xlv2",
             category=ModelCategory.I2V,
             rating=ContentRating.NSFW,
             vram_mb=8000,
@@ -480,146 +503,496 @@ class ModelRegistry:
         ))
         
         self.register(ModelInfo(
-            name="Yiffymix-V2",
-            repo_id="stablediffusion/yiffymix-v2",
-            model_path="yiffymix-v2",
-            category=ModelCategory.I2V,
-            rating=ContentRating.NSFW,
-            vram_mb=8000,
-            resolution=(1024, 1024),
-            max_frames=25,
-            base_model="stabilityai/stable-diffusion-xl-base-1.0",
-        ))
-        
-        self.register(ModelInfo(
             name="Fluffyrock",
-            repo_id="stablediffusion/fluffyrock",
+            repo_id="guoyww/animatediff-motion-adapter-v1-5",
             model_path="fluffyrock",
             category=ModelCategory.I2V,
             rating=ContentRating.NSFW,
             vram_mb=4000,
             resolution=(512, 768),
             max_frames=16,
+            requires_base=True,
             base_model="runwayml/stable-diffusion-v1-5",
         ))
         
         self.register(ModelInfo(
             name="Fluffyrock-Unbound",
-            repo_id="stablediffusion/fluffyrock-unbound",
+            repo_id="guoyww/animatediff-motion-adapter-sdxl-beta",
             model_path="fluffyrock-unbound",
             category=ModelCategory.I2V,
             rating=ContentRating.NSFW,
             vram_mb=8000,
             resolution=(1024, 1024),
             max_frames=24,
+            requires_base=True,
             base_model="stabilityai/stable-diffusion-xl-base-1.0",
         ))
         
         self.register(ModelInfo(
             name="Dreamshaper",
-            repo_id="lykon/dreamshaper",
+            repo_id="guoyww/animatediff-motion-adapter-v1-5",
             model_path="dreamshaper",
             category=ModelCategory.I2V,
             rating=ContentRating.MATURE,
             vram_mb=4000,
             resolution=(512, 768),
             max_frames=16,
+            requires_base=True,
             base_model="runwayml/stable-diffusion-v1-5",
         ))
         
         self.register(ModelInfo(
             name="Dreamshaper-XL",
-            repo_id="lykon/dreamshaper-xl",
+            repo_id="guoyww/animatediff-motion-adapter-sdxl-beta",
             model_path="dreamshaper-xl",
             category=ModelCategory.I2V,
             rating=ContentRating.MATURE,
             vram_mb=8000,
             resolution=(1024, 1024),
             max_frames=24,
+            requires_base=True,
             base_model="stabilityai/stable-diffusion-xl-base-1.0",
         ))
         
         self.register(ModelInfo(
             name="Compass-Mix",
-            repo_id="stablediffusion/compass-mix",
+            repo_id="guoyww/animatediff-motion-adapter-v1-5",
             model_path="compass-mix",
             category=ModelCategory.I2V,
             rating=ContentRating.MATURE,
             vram_mb=4000,
             resolution=(512, 512),
             max_frames=16,
+            requires_base=True,
             base_model="runwayml/stable-diffusion-v1-5",
         ))
         
         self.register(ModelInfo(
             name="Compass-Mix-XL",
-            repo_id="stablediffusion/compass-mix-xl",
+            repo_id="guoyww/animatediff-motion-adapter-sdxl-beta",
             model_path="compass-mix-xl",
             category=ModelCategory.I2V,
             rating=ContentRating.MATURE,
             vram_mb=8000,
             resolution=(1024, 1024),
             max_frames=24,
+            requires_base=True,
             base_model="stabilityai/stable-diffusion-xl-base-1.0",
         ))
         
         self.register(ModelInfo(
             name="PawPunk",
-            repo_id="furry/pawpunk",
+            repo_id="guoyww/animatediff-motion-adapter-sdxl-beta",
             model_path="pawpunk",
             category=ModelCategory.I2V,
             rating=ContentRating.NSFW,
             vram_mb=8000,
             resolution=(1024, 1024),
             max_frames=24,
+            requires_base=True,
             base_model="stabilityai/stable-diffusion-xl-base-1.0",
         ))
         
         self.register(ModelInfo(
             name="FurryForge",
-            repo_id="community/furryforge",
+            repo_id="guoyww/animatediff-motion-adapter-sdxl-beta",
             model_path="furryforge",
             category=ModelCategory.I2V,
             rating=ContentRating.NSFW,
             vram_mb=8000,
             resolution=(1024, 1024),
             max_frames=24,
+            requires_base=True,
             base_model="stabilityai/stable-diffusion-xl-base-1.0",
         ))
         
         self.register(ModelInfo(
             name="FeralCraft",
-            repo_id="furry/feralcraft",
+            repo_id="guoyww/animatediff-motion-adapter-v1-5",
             model_path="feralcraft",
             category=ModelCategory.I2V,
             rating=ContentRating.MATURE,
             vram_mb=4000,
             resolution=(512, 768),
             max_frames=16,
+            requires_base=True,
             base_model="runwayml/stable-diffusion-v1-5",
         ))
         
         self.register(ModelInfo(
             name="Kemonomimi-Mix",
-            repo_id="furry/kemonomimi",
+            repo_id="guoyww/animatediff-motion-adapter-sdxl-beta",
             model_path="kemonomimi",
             category=ModelCategory.I2V,
             rating=ContentRating.MATURE,
             vram_mb=8000,
             resolution=(1024, 1024),
             max_frames=24,
+            requires_base=True,
             base_model="stabilityai/stable-diffusion-xl-base-1.0",
         ))
         
         self.register(ModelInfo(
             name="CreatureCraft",
-            repo_id="furry/creaturecraft",
+            repo_id="guoyww/animatediff-motion-adapter-sdxl-beta",
             model_path="creaturecraft",
             category=ModelCategory.I2V,
             rating=ContentRating.NSFW,
             vram_mb=8000,
             resolution=(1024, 1024),
             max_frames=24,
+            requires_base=True,
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
+        
+        # =============================================
+        # TEXT2IMAGE MODELS
+        # =============================================
+        # SDXL/SD text-to-image models used as base generators
+        
+        # ===== PREMIUM PHOTOREAL MODELS =====
+        
+        self.register(ModelInfo(
+            name="Juggernaut XL",
+            repo_id="RunDiffusion/Juggernaut-XL-v9",
+            model_path="juggernaut-xl",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+        ))
+        
+        self.register(ModelInfo(
+            name="RealVis XL",
+            repo_id="SG161222/RealVisXL_V4.0",
+            model_path="realvis-xl",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+        ))
+        
+        # ===== EXPERIMENTAL/STYLIZED =====
+        
+        self.register(ModelInfo(
+            name="Alpha Centauri Flux",
+            repo_id="black-forest-labs/FLUX.1-dev",
+            model_path="alpha-centauri-flux",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=16000,
+            resolution=(1024, 1024),
+            pipeline_type="flux",
+        ))
+        
+        # ===== PHOTOREAL MODELS =====
+        
+        self.register(ModelInfo(
+            name="DreamShaper XL",
+            repo_id="Lykon/dreamshaper-xl-1-0",
+            model_path="dreamshaper-xl",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+            variants={
+                "fp16": "Lykon/dreamshaper-xl-1-0",
+            }
+        ))
+        
+        self.register(ModelInfo(
+            name="Lite DreamShaper XL",
+            repo_id="Lykon/dreamshaper-xl-lightning",
+            model_path="lite-dreamshaper-xl",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=6000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+            variants={
+                "fp16": "Lykon/dreamshaper-xl-lightning",
+            }
+        ))
+        
+        # ===== ANIME MODELS =====
+        
+        self.register(ModelInfo(
+            name="BluePencil XL",
+            repo_id="bluepen5805/blue_pencil-XL",
+            model_path="bluepencil-xl",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+        ))
+        
+        self.register(ModelInfo(
+            name="Lite BluePencil XL",
+            repo_id="stablediffusionapi/blue_pencil_xl_lcm",
+            model_path="lite-bluepencil-xl",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=6000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+        ))
+        
+        self.register(ModelInfo(
+            name="Anything",
+            repo_id="stablediffusionapi/anything-v5",
+            model_path="anything",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=4000,
+            resolution=(512, 768),
+            pipeline_type="sd15",
+            base_model="runwayml/stable-diffusion-v1-5",
+        ))
+        
+        # ===== FURRY / STYLIZED MODELS =====
+        
+        self.register(ModelInfo(
+            name="Compass Mix XL",
+            repo_id="frosting-ai/compassmix-xl-lightning",
+            model_path="compass-mix-xl",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=6000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+            variants={
+                "fp16": "frosting-ai/compassmix-xl-lightning",
+            }
+        ))
+        
+        self.register(ModelInfo(
+            name="Lite Compass Mix XL",
+            repo_id="frosting-ai/compassmix-extras",
+            model_path="lite-compass-mix-xl",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=4000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+        ))
+        
+        self.register(ModelInfo(
+            name="Indigomix V",
+            repo_id="stablediffusionapi/indigo-furry-mix-v65",
+            model_path="indigomix-v",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.NSFW,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+        ))
+        
+        # ===== YIFFYMIX MODELS (FURRY) =====
+        
+        self.register(ModelInfo(
+            name="YiffyMix",
+            repo_id="Yntec/YiffyMix",
+            model_path="yiffymix",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.NSFW,
+            vram_mb=4000,
+            resolution=(512, 768),
+            pipeline_type="sd15",
+            base_model="runwayml/stable-diffusion-v1-5",
+        ))
+        
+        self.register(ModelInfo(
+            name="YiffyMix XL",
+            repo_id="IDK-ab0ut/Yiffymix_v51-XL",
+            model_path="yiffymix-xl",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.NSFW,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+            variants={
+                "v51": "IDK-ab0ut/Yiffymix_v51-XL",
+                "v52": "IDK-ab0ut/Yiffymix_v52-XL",
+            }
+        ))
+        
+        self.register(ModelInfo(
+            name="YiffyMix v5",
+            repo_id="IDK-ab0ut/Yiffymix_v51-XL",
+            model_path="yiffymix-v5",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.NSFW,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
+        
+        self.register(ModelInfo(
+            name="YiffyMix v6",
+            repo_id="IDK-ab0ut/Yiffymix_v52-XL",
+            model_path="yiffymix-v6",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.NSFW,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
+        
+        # ===== ADDITIONAL PREMIUM VARIANTS =====
+        
+        self.register(ModelInfo(
+            name="Juggernaut XL v11",
+            repo_id="RunDiffusion/Juggernaut-XI-v11",
+            model_path="juggernaut-xl-v11",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+        ))
+        
+        self.register(ModelInfo(
+            name="DreamShaper XL Turbo",
+            repo_id="Lykon/dreamshaper-xl-v2-turbo",
+            model_path="dreamshaper-xl-turbo",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=6000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+        ))
+        
+        self.register(ModelInfo(
+            name="BluePencil XL LCM",
+            repo_id="stablediffusionapi/blue_pencil_xl_lcm",
+            model_path="bluepencil-xl-lcm",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=4000,
+            resolution=(1024, 1024),
+            pipeline_type="sdxl",
+        ))
+        
+        # ===== FROSTING LANE FLUX (LoRA) =====
+        
+        self.register(ModelInfo(
+            name="Frosting Lane Flux",
+            repo_id="black-forest-labs/FLUX.1-dev",
+            model_path="frosting-lane-flux",
+            category=ModelCategory.TEXT2IMAGE,
+            rating=ContentRating.MATURE,
+            vram_mb=16000,
+            resolution=(1024, 1024),
+            pipeline_type="flux",
+            is_lora=True,
+            lora_id="frosting-ai/frosting-lane-flux",
+            base_model="black-forest-labs/FLUX.1-dev",
+        ))
+        
+        # =============================================
+        # WAN2.2 VIDEO MODELS
+        # =============================================
+
+        self.register(ModelInfo(
+            name="Wan2.2-T2V-14B",
+            repo_id="Wan-AI/Wan2.2-T2V-A14B",
+            model_path="wan2.2-t2v-14b",
+            category=ModelCategory.TEXT2VIDEO,
+            rating=ContentRating.SAFE,
+            vram_mb=80000,
+            resolution=(1280, 720),
+            max_frames=81,
+            fps=16,
+            pipeline_type="wan_t2v",
+            variants={
+                "480p": "Wan-AI/Wan2.2-T2V-A14B",
+                "720p": "Wan-AI/Wan2.2-T2V-A14B",
+            }
+        ))
+
+        self.register(ModelInfo(
+            name="Wan2.2-I2V-14B",
+            repo_id="Wan-AI/Wan2.2-I2V-A14B-Diffusers",
+            model_path="wan2.2-i2v-14b",
+            category=ModelCategory.I2V,
+            rating=ContentRating.SAFE,
+            vram_mb=80000,
+            resolution=(1280, 720),
+            max_frames=81,
+            fps=16,
+            pipeline_type="wan_i2v",
+        ))
+
+        self.register(ModelInfo(
+            name="Wan2.2-Lightning-T2V",
+            repo_id="lightx2v/Wan2.2-Lightning",
+            model_path="wan2.2-lightning-t2v",
+            category=ModelCategory.TEXT2VIDEO,
+            rating=ContentRating.SAFE,
+            vram_mb=40000,
+            resolution=(1280, 720),
+            max_frames=81,
+            fps=16,
+            pipeline_type="wan_lightning_t2v",
+            is_lora=True,
+            requires_base=True,
+            base_model="Wan-AI/Wan2.2-T2V-A14B",
+        ))
+
+        self.register(ModelInfo(
+            name="Wan2.2-Lightning-I2V",
+            repo_id="lightx2v/Wan2.2-Lightning",
+            model_path="wan2.2-lightning-i2v",
+            category=ModelCategory.I2V,
+            rating=ContentRating.SAFE,
+            vram_mb=40000,
+            resolution=(1280, 720),
+            max_frames=81,
+            fps=16,
+            pipeline_type="wan_lightning_i2v",
+            is_lora=True,
+            requires_base=True,
+            base_model="Wan-AI/Wan2.2-I2V-A14B-Diffusers",
+        ))
+
+        # =============================================
+        # PIC ALIVER MOTION / VIDEO MODELS
+        # =============================================
+        # Polaris: loop-based motion (SFW)
+        # Lynx One: start/end frame animation system (NSFW)
+        
+        self.register(ModelInfo(
+            name="Polaris",
+            repo_id="internal/polaris-motion",
+            model_path="polaris",
+            category=ModelCategory.VIDEO_MOTION,
+            rating=ContentRating.MATURE,
+            vram_mb=4000,
+            resolution=(1024, 1024),
+            max_frames=32,
+            fps=8,
+            pipeline_type="polaris",
+            base_model="stabilityai/stable-diffusion-xl-base-1.0",
+        ))
+        
+        self.register(ModelInfo(
+            name="Lynx One",
+            repo_id="internal/lynx-one",
+            model_path="lynx-one",
+            category=ModelCategory.VIDEO_MOTION,
+            rating=ContentRating.NSFW,
+            vram_mb=8000,
+            resolution=(1024, 1024),
+            max_frames=48,
+            fps=12,
+            pipeline_type="lynx",
             base_model="stabilityai/stable-diffusion-xl-base-1.0",
         ))
     

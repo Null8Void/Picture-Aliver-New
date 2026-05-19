@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import sys
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -12,12 +13,16 @@ import numpy as np
 import torch
 from PIL import Image
 
-from ..core.config import Config
-from ..core.device import DeviceManager, get_torch_device
+from .config import Config
+from .device import DeviceManager, get_torch_device
 
-from ..modules.depth import DepthEstimator, DepthMap
-from ..modules.segmentation import Segmentor, SegmentationMask
-from ..modules.motion import (
+_src = Path(__file__).resolve().parent.parent
+if str(_src) not in sys.path:
+    sys.path.insert(0, str(_src))
+
+from modules.depth import DepthEstimator, DepthMap
+from modules.segmentation import Segmentor, SegmentationMask
+from modules.motion import (
     FlowEstimator, FlowField, MotionMagnitude,
     CameraMotionGenerator, CameraTrajectory,
     ObjectMotionGenerator, ObjectMotion,
@@ -26,7 +31,7 @@ from ..modules.motion import (
     PhysicsMotionGenerator, PhysicsConfig,
     FurryMotionGenerator, FurryMotionType
 )
-from ..modules.generation import (
+from modules.generation import (
     VideoGenerator,
     TemporalConsistencyManager,
     VideoFrames,

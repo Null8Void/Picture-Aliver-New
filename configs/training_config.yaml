@@ -1,0 +1,440 @@
+# =============================================================================
+# TRAINING CONFIGURATION TEMPLATE — Pic Aliver
+# Fill in blank fields (marked with "" or null) with your values
+# =============================================================================
+
+training:
+  # ===========================================================================
+  # DATASET
+  # ===========================================================================
+  dataset:
+    path: ""                         # Path to training dataset
+    type: ""                         # "image", "video", "image_pair", "laion", "custom"
+    format: ""                       # "folder", "webdataset", "csv", "jsonl", "huggingface"
+
+    # ------------------------------------------------------------------
+    # DATASET FILTERS — fill in thresholds to enable
+    # ------------------------------------------------------------------
+    filters:
+      resolution:
+        min_width: null
+        min_height: null
+        max_width: null
+        max_height: null
+        min_aspect_ratio: null
+        max_aspect_ratio: null
+
+      aesthetic:
+        min_score: null               # 0.0 – 10.0
+        max_score: null
+        model: ""                     # "laion-aesthetic-predictor-v2", "improved-aesthetic-predictor"
+
+      nsfw:
+        filter_nsfw: false
+        nsfw_threshold: null          # 0.0 – 1.0
+        nsfw_model: ""                # "falconsai/nsfw_image_detection", "custom"
+
+      watermark:
+        filter_watermarks: false
+        watermark_threshold: null     # 0.0 – 1.0
+
+      blur:
+        max_blur_score: null          # 0.0 – 1.0 (lower = sharper)
+
+      face:
+        max_faces: null               # max number of faces per image
+        min_face_ratio: null          # min face area as fraction of image
+
+      text:
+        max_text_ratio: null          # max text area as fraction of image
+
+      color:
+        allowed_colorspace: ""        # "RGB", "grayscale", "both"
+        min_saturation: null
+        max_saturation: null
+        min_brightness: null
+        max_brightness: null
+
+      duplicate:
+        deduplicate: false
+        similarity_threshold: null    # 0.0 – 1.0
+        hash_method: ""               # "phash", "dhash", "ahash", "whash"
+
+      size:
+        min_file_size_bytes: null
+        max_file_size_bytes: null
+
+      aspect_ratio_bucket:
+        enabled: false
+        target_buckets: []            # e.g. [[1,1], [4,3], [16,9]]
+
+      tag_filter:
+        include_tags: []              # only keep samples with ALL these tags
+        exclude_tags: []              # drop samples with ANY of these tags
+        tag_source: ""                # "filename", "metadata", "separate_file"
+
+      metadata_filter:
+        field: ""                     # metadata field to filter on
+        operator: ""                  # "eq", "ne", "gt", "gte", "lt", "lte", "in", "between"
+        value: null
+
+    # ------------------------------------------------------------------
+    # CAPTIONS / LABELS
+    # ------------------------------------------------------------------
+    captions:
+      source: ""                      # "filename", "folder_name", "txt_file", "metadata", "alt_text"
+      path: ""                        # Path to caption file/folder
+      extension: ""                   # ".txt", ".json", ".caption"
+      prefix: ""                      # Text prepended to every caption
+      suffix: ""                      # Text appended to every caption
+      drop_first_n_words: null
+      max_length: null                # Truncate captions beyond this length
+      shuffle: false
+      strategy: ""                    # "single", "comma_delimited", "token_dropping", "template"
+
+      # Caption augmentation
+      augmentation:
+        enabled: false
+        synonym_replace: 0.0          # Probability of replacing a word with a synonym
+        word_dropout: 0.0             # Probability of dropping a word
+        word_shuffle: 0.0             # Probability of shuffling word order
+
+    # ------------------------------------------------------------------
+    # DATA AUGMENTATION
+    # ------------------------------------------------------------------
+    augmentation:
+      enabled: false
+      horizontal_flip: false
+      vertical_flip: false
+      rotate: null                    # max rotation degrees
+      brightness: null                # brightness jitter range
+      contrast: null                  # contrast jitter range
+      saturation: null                # saturation jitter range
+      hue: null                       # hue jitter range
+      crop_ratio: null                # random crop ratio (0.0 – 1.0)
+      zoom: null                      # max zoom factor
+      noise: null                     # gaussian noise std dev
+      blur: null                      # gaussian blur kernel size
+
+  # ===========================================================================
+  # MODEL
+  # ===========================================================================
+  model:
+    base: ""                          # Base model repo_id or path
+    type: ""                          # "sd15", "sdxl", "sd3", "flux", "pixart", "wan2.2", "custom"
+    pretrained: ""                    # Pretrained weights path
+    vae: ""                           # VAE path (null = use model default)
+
+    # ------------------------------------------------------------------
+    # NETWORK (LoRA / DreamBooth / Full fine-tune)
+    # ------------------------------------------------------------------
+    network:
+      type: ""                        # "lora", "dylora", "loha", "lokr", "oft", "full", "dreambooth"
+      rank: null                      # LoRA rank
+      alpha: null                     # LoRA alpha (scaling)
+      dropout: null                   # LoRA dropout rate
+      module: ""                      # "all", "unet", "text_encoder", "attn", "mlp"
+      blocks:
+        input: null                   # Specific input blocks to train
+        mid: null
+        output: null
+
+    # ------------------------------------------------------------------
+    # TEXT ENCODER
+    # ------------------------------------------------------------------
+    text_encoder:
+      train: false
+      learning_rate: null             # Separate LR for text encoder
+      layers: ""                      # "all", "last_n", "custom"
+      num_last_layers: null
+
+  # ===========================================================================
+  # TRAINING LOOP
+  # ===========================================================================
+  training:
+    # ------------------------------------------------------------------
+    # OPTIMIZER
+    # ------------------------------------------------------------------
+    optimizer:
+      type: ""                        # "adamw", "adamw8bit", "lbfgs", "sgd", "adafactor", "prodigy", "dadaptation"
+      learning_rate: 0.0
+      weight_decay: 0.0
+      betas: [null, null]              # Adam beta1, beta2
+      epsilon: null
+      warmup_steps: 0
+      scheduler: ""                   # "cosine", "linear", "constant", "polynomial", "cosine_with_restarts"
+      min_lr_ratio: null              # fraction of peak LR (for cosine scheduler)
+      num_cycles: null                # for cosine_with_restarts
+
+    # ------------------------------------------------------------------
+    # RESOLUTION
+    # ------------------------------------------------------------------
+    resolution:
+      bucket:
+        enabled: false
+        min_size: null
+        max_size: null
+        divisible_by: 8
+        max_buckets: null
+      target: [null, null]             # [width, height]
+
+    # ------------------------------------------------------------------
+    # BATCH SIZE
+    # ------------------------------------------------------------------
+    batch:
+      per_device: null
+      gradient_accumulation: 1
+      total: null                      # Auto-calculated
+
+    # ------------------------------------------------------------------
+    # STEPS / EPOCHS
+    # ------------------------------------------------------------------
+    steps:
+      max_train: null                  # Max training steps
+      max_epochs: null                 # Overrides max_train if set
+      save_every_n_steps: null
+      save_every_n_epochs: null
+      log_every_n_steps: 10
+      eval_every_n_steps: null
+      checkpoint_every_n_steps: null
+
+    # ------------------------------------------------------------------
+    # PRECISION
+    # ------------------------------------------------------------------
+    mixed_precision: ""                # "fp16", "bf16", "no"
+    save_precision: ""                 # "fp16", "bf16", "fp32"
+
+    # ------------------------------------------------------------------
+    # CHECKPOINTING
+    # ------------------------------------------------------------------
+    checkpoint:
+      output_dir: "./outputs/training"
+      save_format: ""                  # "diffusers", "safetensors", "ckpt"
+      resume_from: ""                  # Path to resume checkpoint
+      save_only_weights: false
+      max_checkpoints: null            # Max checkpoints to keep (null = unlimited)
+
+    # ------------------------------------------------------------------
+    # REGULARIZATION (DreamBooth prior preservation)
+    # ------------------------------------------------------------------
+    regularization:
+      enabled: false
+      dataset_path: ""
+      num_images: 0
+      weight: 0.0                      # Prior preservation loss weight
+
+    # ------------------------------------------------------------------
+    # MEMORY OPTIMIZATION
+    # ------------------------------------------------------------------
+    memory:
+      xformers: false
+      sdp_attention: true
+      gradient_checkpointing: true
+      enable_memory_efficient_attention: true
+      offload_text_encoder: false
+      offload_vae: false
+      split_attentions: false
+      adamw_8bit: false
+
+  # ===========================================================================
+  # ADVANCED TRAINING PARAMETERS
+  # ===========================================================================
+  advanced:
+    # ------------------------------------------------------------------
+    # NOISE & LOSS
+    # ------------------------------------------------------------------
+    noise_offset: null                 # Offset noise strength
+    multires_noise_discount: null      # Multi-resolution noise discount factor
+    ip_noise_gamma: null               # Input perturbation noise gamma
+    ip_noise_scale: null               # Input perturbation noise scale
+    offset_noise: null                 # Offset noise flag
+
+    loss:
+      type: ""                         # "mse", "huber", "vlb"
+      huber_delta: null                # Huber loss delta
+      timestep_weighting: ""           # "uniform", "snr", "min_snr", "p2"
+      min_snr_gamma: null              # Min-SNR weighting gamma
+      p2_gamma: null                   # P2 weighting gamma
+      p2_k: null                       # P2 weighting k
+
+    # ------------------------------------------------------------------
+    # CONDITIONING DROPOUT
+    # ------------------------------------------------------------------
+    conditioning_dropout:
+      text: null                       # Probability of dropping text conditioning
+      image: null                      # Probability of dropping image conditioning
+      pooled_text: null                # For SDXL pooled text dropout
+
+    # ------------------------------------------------------------------
+    # PRIOR LOSS
+    # ------------------------------------------------------------------
+    prior_loss_weight: null
+
+    # ------------------------------------------------------------------
+    # DREAMBOOTH SPECIFIC
+    # ------------------------------------------------------------------
+    dreambooth:
+      with_prior_preservation: false
+      class_data_dir: ""
+      class_prompt: ""
+      prior_loss_weight: 1.0
+
+    # ------------------------------------------------------------------
+    # LoRA SPECIFIC
+    # ------------------------------------------------------------------
+    lora:
+      target_modules: []
+      network_weights: ""              # Path to pretrained LoRA weights to start from
+      train_unet: true
+      train_text_encoder: false
+      conv_rank: null                  # LoRA rank for conv layers
+
+    # ------------------------------------------------------------------
+    # CACHING
+    # ------------------------------------------------------------------
+    cache:
+      vae_outputs: false               # Pre-compute and cache VAE latents
+      text_encoder_outputs: false      # Pre-compute and cache text embeddings
+      cache_dir: ""                    # Where to store cached latents/embeddings
+      cache_format: ""                 # "safetensors", "npy", "pt"
+
+    # ------------------------------------------------------------------
+    # EMA (Exponential Moving Average)
+    # ------------------------------------------------------------------
+    ema:
+      enabled: false
+      decay: null                      # EMA decay rate (e.g. 0.999)
+      update_every_n_steps: null
+      power: null                      # EMA power parameter
+
+  # ===========================================================================
+  # VALIDATION
+  # ===========================================================================
+  validation:
+    enabled: false
+    prompts: []                        # Validation prompts
+    seeds: []                          # Validation seeds
+    num_images: 1
+    steps: null                        # Override inference steps for val
+    guidance_scales: [7.5]
+    negative_prompt: ""
+
+    # ------------------------------------------------------------------
+    # VALIDATION METRICS / FILTERS
+    # ------------------------------------------------------------------
+    filters:
+      clip_score:
+        enabled: false
+        min_score: null
+        model: ""                      # "openai/clip-vit-large-patch14", "custom"
+
+      aesthetic_score:
+        enabled: false
+        min_score: null
+        model: ""
+
+      face_quality:
+        enabled: false
+        min_score: null
+        detector: ""                   # "retinaface", "mtcnn", "dlib"
+
+      image_reward:
+        enabled: false
+        min_score: null
+        model: ""
+
+      hpsv2:
+        enabled: false
+        min_score: null
+
+      pick_score:
+        enabled: false
+        min_score: null
+
+      coherence:
+        enabled: false
+        min_score: null
+
+      video_metrics:
+        enabled: false
+        motion_quality: null           # Temporal consistency score
+        frame_consistency: null        # Frame-to-frame similarity
+        subject_consistency: null      # Subject identity preservation
+
+      benchmark:
+        enabled: false
+        dataset: ""                    # "coco", "partiprompts", "drawbench", "mjhq", "custom"
+        split: ""
+        limit: null
+
+  # ===========================================================================
+  # LOGGING
+  # ===========================================================================
+  logging:
+    tool: ""                           # "wandb", "tensorboard", "mlflow", "none"
+    project: "pic-aliver"
+    run_name: ""
+    tags: []
+    notes: ""
+
+    # ------------------------------------------------------------------
+    # LOG FILTERS — what to include in logs
+    # ------------------------------------------------------------------
+    log_images:
+      generated: true
+      gradient_norms: false
+      loss_curves: true
+      learning_rate: true
+      parameter_norm: false
+      sampling_visualization: false
+
+    # Log to file
+    file:
+      enabled: true
+      path: "./logs/training.log"
+      level: "INFO"                    # "DEBUG", "INFO", "WARNING", "ERROR"
+      format: ""                       # Custom log format string
+
+  # ===========================================================================
+  # DISTRIBUTED TRAINING
+  # ===========================================================================
+  distributed:
+    enabled: false
+    backend: ""                        # "nccl", "gloo", "mpi"
+    find_unused_parameters: false
+    gradient_clipping: null            # Max gradient norm
+    sync_batchnorm: false
+
+  # ===========================================================================
+  # DATALOADER
+  # ===========================================================================
+  dataloader:
+    num_workers: 0
+    pin_memory: true
+    prefetch_factor: null
+    persistent_workers: false
+    shuffle: true
+    drop_last: false
+
+  # ===========================================================================
+  # INFERENCE / GENERATION-ONLY MODE
+  # ===========================================================================
+  inference:
+    enabled: false                     # Set true to skip training, only generate
+    model_path: ""                     # Path to trained model weights
+    output_dir: "./outputs/inference"
+    batch_size: 1
+    num_samples: 1
+
+# =============================================================================
+# SYSTEM
+# =============================================================================
+system:
+  seed: null                           # Global random seed (null = random)
+  device: ""                           # "cuda", "cpu", "mps"
+  num_devices: 1
+  mixed_precision: true
+  compile_model: false
+  allow_tf32: true
+  cudnn_benchmark: false
+  verbose: false

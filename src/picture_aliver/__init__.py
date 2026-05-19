@@ -28,6 +28,11 @@ from .gpu_optimization import (
     optimize_model_for_device, print_benchmark_table
 )
 from .main import Pipeline, PipelineConfig, PipelineResult, run_pipeline
+from .experiences import (
+    ModelExperience, ImageModelExperience, VideoModelExperience,
+    ModelExperienceLauncher, GenerationResult, launch_interactive, run_one_shot,
+)
+from .cli import main as cli_main
 
 __all__ = [
     "ImageLoader",
@@ -72,4 +77,12 @@ __all__ = [
     "PipelineConfig",
     "PipelineResult",
     "run_pipeline",
+    "ModelExperience",
+    "ImageModelExperience",
+    "VideoModelExperience",
+    "ModelExperienceLauncher",
+    "GenerationResult",
+    "launch_interactive",
+    "run_one_shot",
+    "cli_main",
 ]

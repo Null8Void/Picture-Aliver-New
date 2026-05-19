@@ -45,13 +45,14 @@ setup(
             "flake8>=6.0.0",
         ],
         "gpu": [
-            "torch>=2.0.0+cu118",
-            "torchvision>=0.15.0+cu118",
+            "torch>=2.0.0",
+            "torchvision>=0.15.0",
         ],
     },
     entry_points={
         "console_scripts": [
             "image2video=src.bin.cli:main",
+            "picaliver=picture_aliver.cli:main",
         ],
     },
     classifiers=[
